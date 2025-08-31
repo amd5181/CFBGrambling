@@ -494,13 +494,24 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bXhpYmRmaHR1cmxsanZxZm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjA2NDMsImV4cCI6MjA3MjIzNjY0M30.3B2SHPrDWYGTYLXUieEoO2Nx40CoOlUD_B-8uIKw21s';
         const ODDS_API_KEY = '5ac6ca934f3164bd862f5d44907f11f4';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
         // Global state
         let currentUser = null;
+        let supabase = null;
+        
+        // Initialize Supabase when page loads
+        function initializeSupabase() {
+            if (window.supabase && window.supabase.createClient) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('Supabase initialized successfully');
+            } else {
+                console.log('Supabase not ready, retrying...');
+                setTimeout(initializeSupabase, 100);
+            }
+        }
         
         // Check for existing session on load
         window.addEventListener('DOMContentLoaded', () => {
+            initializeSupabase();
             const savedUser = localStorage.getItem('cfb_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
@@ -576,6 +587,11 @@
             
             clearErrors();
             
+            if (!supabase) {
+                showError('registerError', 'System not ready. Please wait a moment and try again.');
+                return;
+            }
+            
             if (!pin || !name) {
                 showError('registerError', 'Please fill in all fields');
                 return;
@@ -633,6 +649,11 @@
             const btn = document.getElementById('loginBtn');
             
             clearErrors();
+            
+            if (!supabase) {
+                showError('loginError', 'System not ready. Please wait a moment and try again.');
+                return;
+            }
             
             if (!pin) {
                 showError('loginError', 'Please enter your PIN');
