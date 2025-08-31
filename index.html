@@ -17,6 +17,8 @@
             background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
             min-height: 100vh;
             color: white;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
@@ -36,6 +38,29 @@
             font-size: 1.5rem;
             font-weight: 700;
             color: #ffffff;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #e2e8f0;
+        }
+
+        .nav-link.selected {
+            color: #0ea5e9;
         }
         
         .user-info {
@@ -72,6 +97,10 @@
             background: rgba(239, 68, 68, 0.3);
         }
         
+        .main-content {
+            flex-grow: 1;
+        }
+
         .container {
             display: flex;
             gap: 2rem;
@@ -84,11 +113,11 @@
             flex: 2;
         }
         
-        .bet-slip {
+        .bet-slip-section {
             flex: 1;
             max-width: 350px;
             position: sticky;
-            top: 120px;
+            top: 100px;
             height: fit-content;
         }
         
@@ -135,7 +164,7 @@
             border-bottom: 1px solid rgba(148, 163, 184, 0.1);
         }
         
-        .team-line:last-child {
+        .team-line:last-of-type {
             border-bottom: none;
         }
         
@@ -275,6 +304,10 @@
             box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
         }
         
+        .bet-amount-input::placeholder {
+            color: #64748b;
+        }
+        
         .remove-bet {
             background: rgba(239, 68, 68, 0.2);
             border: none;
@@ -361,6 +394,47 @@
             font-size: 0.85rem;
             margin-top: 1rem;
             text-align: center;
+        }
+
+        .leaderboard-section {
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+        
+        .leaderboard-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .leaderboard-header, .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            font-weight: 600;
+        }
+
+        .leaderboard-header {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .rank, .rank-header { flex-basis: 10%; text-align: center; }
+        .user-name, .user-header { flex-basis: 40%; }
+        .points, .points-header { flex-basis: 25%; text-align: right; }
+        .user-id, .user-id-header { flex-basis: 25%; text-align: right; }
+
+        .leaderboard-item {
+            color: #e2e8f0;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
         }
         
         .auth-modal {
@@ -494,7 +568,7 @@
                 gap: 1.5rem;
             }
             
-            .bet-slip {
+            .bet-slip-section {
                 max-width: none;
                 position: static;
             }
@@ -504,7 +578,13 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>🏈 CFB Grambling</h1>
+        <div class="header-left">
+            <h1>🏈 CFB Grambling</h1>
+            <nav>
+                <a href="#" class="nav-link selected" data-page="betting" onclick="renderPage('betting')">Betting</a>
+                <a href="#" class="nav-link" data-page="leaderboard" onclick="renderPage('leaderboard')">Leaderboard</a>
+            </nav>
+        </div>
         <div class="user-info">
             <span class="user-name" id="userName">Guest</span>
             <span class="points" id="userPoints">0 pts</span>
@@ -512,170 +592,12 @@
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Games Section -->
-        <div class="games-section">
-            <h2 class="section-title">Week 1 Betting Lines</h2>
-            
-            <!-- Sample Game Cards -->
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-title">Georgia vs Alabama</div>
-                    <div class="game-time">Saturday, Sep 7, 3:30 PM ET</div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Georgia</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game1', 'Georgia', 'moneyline', '-150')" data-bet="game1-georgia-moneyline">-150</div>
-                        <div class="bet-bubble" onclick="selectBet('game1', 'Georgia', 'spread', '-3.5 (-110)')" data-bet="game1-georgia-spread">-3.5</div>
-                    </div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Alabama</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game1', 'Alabama', 'moneyline', '+130')" data-bet="game1-alabama-moneyline">+130</div>
-                        <div class="bet-bubble" onclick="selectBet('game1', 'Alabama', 'spread', '+3.5 (-110)')" data-bet="game1-alabama-spread">+3.5</div>
-                    </div>
-                </div>
-                
-                <div class="over-under-line">
-                    <span class="ou-label">Total: 52.5</span>
-                    <div class="bet-bubble" onclick="selectBet('game1', 'Over', 'total', 'O52.5 (-110)')" data-bet="game1-over">Over</div>
-                    <div class="bet-bubble" onclick="selectBet('game1', 'Under', 'total', 'U52.5 (-110)')" data-bet="game1-under">Under</div>
-                </div>
-            </div>
-
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-title">Texas vs Michigan</div>
-                    <div class="game-time">Saturday, Sep 7, 7:30 PM ET</div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Texas</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game2', 'Texas', 'moneyline', '-120')" data-bet="game2-texas-moneyline">-120</div>
-                        <div class="bet-bubble" onclick="selectBet('game2', 'Texas', 'spread', '-2.5 (-110)')" data-bet="game2-texas-spread">-2.5</div>
-                    </div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Michigan</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game2', 'Michigan', 'moneyline', '+100')" data-bet="game2-michigan-moneyline">+100</div>
-                        <div class="bet-bubble" onclick="selectBet('game2', 'Michigan', 'spread', '+2.5 (-110)')" data-bet="game2-michigan-spread">+2.5</div>
-                    </div>
-                </div>
-                
-                <div class="over-under-line">
-                    <span class="ou-label">Total: 45.5</span>
-                    <div class="bet-bubble" onclick="selectBet('game2', 'Over', 'total', 'O45.5 (-110)')" data-bet="game2-over">Over</div>
-                    <div class="bet-bubble" onclick="selectBet('game2', 'Under', 'total', 'U45.5 (-110)')" data-bet="game2-under">Under</div>
-                </div>
-            </div>
-
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-title">Ohio State vs Oregon</div>
-                    <div class="game-time">Saturday, Sep 7, 8:00 PM ET</div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Ohio State</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game3', 'Ohio State', 'moneyline', '-180')" data-bet="game3-ohiostate-moneyline">-180</div>
-                        <div class="bet-bubble" onclick="selectBet('game3', 'Ohio State', 'spread', '-4.5 (-110)')" data-bet="game3-ohiostate-spread">-4.5</div>
-                    </div>
-                </div>
-                
-                <div class="team-line">
-                    <div class="team-name">Oregon</div>
-                    <div class="betting-options">
-                        <div class="bet-bubble" onclick="selectBet('game3', 'Oregon', 'moneyline', '+155')" data-bet="game3-oregon-moneyline">+155</div>
-                        <div class="bet-bubble" onclick="selectBet('game3', 'Oregon', 'spread', '+4.5 (-110)')" data-bet="game3-oregon-spread">+4.5</div>
-                    </div>
-                </div>
-                
-                <div class="over-under-line">
-                    <span class="ou-label">Total: 58.5</span>
-                    <div class="bet-bubble" onclick="selectBet('game3', 'Over', 'total', 'O58.5 (-110)')" data-bet="game3-over">Over</div>
-                    <div class="bet-bubble" onclick="selectBet('game3', 'Under', 'total', 'U58.5 (-110)')" data-bet="game3-under">Under</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bet Slip -->
-        <div class="bet-slip">
-            <div class="bet-slip-card">
-                <div class="bet-slip-header">
-                    <div class="bet-slip-title">Bet Slip</div>
-                    <div class="bet-count" id="betCount">0/5</div>
-                </div>
-                
-                <div id="betSlipContent">
-                    <div style="text-align: center; color: #64748b; padding: 2rem;">
-                        Select betting options to add them here
-                    </div>
-                </div>
-                
-                <div class="bet-summary">
-                    <div class="summary-row">
-                        <span class="summary-label">Total Wagered:</span>
-                        <span class="summary-value" id="totalWagered">$0.00</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Remaining:</span>
-                        <span class="summary-value remaining-amount" id="remainingAmount">$20.00</span>
-                    </div>
-                </div>
-                
-                <button class="submit-btn" id="submitBtn" disabled>Submit Bets</button>
-                
-                <div id="validationMessage" class="validation-message hidden"></div>
-            </div>
-        </div>
+    <!-- Main Content Container -->
+    <div class="main-content" id="mainContent">
+        <!-- Page content will be dynamically loaded here -->
     </div>
-
-    <!-- Auth Modal -->
-    <div id="authModal" class="auth-modal">
-        <div class="auth-card">
-            <div id="authContent">
-                <div class="auth-title">Welcome to CFB Grambling</div>
-                
-                <div id="loginForm">
-                    <div class="input-group">
-                        <label class="label">Your PIN</label>
-                        <input type="text" id="loginPin" class="input" placeholder="Enter your PIN">
-                    </div>
-                    <button class="btn" onclick="handleLogin()" id="loginBtn">Login</button>
-                    <button class="btn btn-secondary" onclick="showRegisterForm()">Create Account</button>
-                </div>
-                
-                <div id="registerForm" class="hidden">
-                    <div class="input-group">
-                        <label class="label">Unique PIN (4+ digits)</label>
-                        <input type="text" id="registerPin" class="input" placeholder="Enter your unique PIN">
-                    </div>
-                    <div class="input-group">
-                        <label class="label">Display Name</label>
-                        <input type="text" id="registerName" class="input" placeholder="Enter your name">
-                    </div>
-                    <button class="btn" onclick="handleRegister()" id="registerBtn">Create Account</button>
-                    <button class="btn btn-secondary" onclick="showLoginForm()">Back to Login</button>
-                    
-                    <div class="admin-notice">
-                        <strong>Admin PINs:</strong> 7717 or 3669 will create admin accounts
-                    </div>
-                </div>
-                
-                <div id="authError" class="error hidden"></div>
-            </div>
-        </div>
-    </div>
-
+    
+    <!-- Scripts -->
     <script>
         // Supabase setup
         const SUPABASE_URL = 'https://bumxibdfhturlljvqfnn.supabase.co';
@@ -685,13 +607,25 @@
         let currentUser = null;
         let supabase = null;
         let betSlip = [];
+        let allUsers = [];
+        const BET_LIMIT = 5;
+        const WAGER_LIMIT = 20;
+        const MIN_BET = 3;
+
+        // DOM Elements
+        const mainContent = document.getElementById('mainContent');
+        const headerUserName = document.getElementById('userName');
+        const headerUserPoints = document.getElementById('userPoints');
+        const logoutBtn = document.querySelector('.logout-btn');
         
         // Initialize app
         window.addEventListener('DOMContentLoaded', () => {
             initializeSupabase();
             checkAuth();
+            renderPage('betting'); // Start on the betting page
         });
-        
+
+        // --- Supabase and Auth Logic ---
         function initializeSupabase() {
             try {
                 if (window.supabase && window.supabase.createClient) {
@@ -705,57 +639,54 @@
             }
         }
         
-        function checkAuth() {
+        async function checkAuth() {
             const savedUser = localStorage.getItem('cfb_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                hideAuthModal();
                 updateUserDisplay();
+                fetchUsers();
             } else {
-                showAuthModal();
+                renderLoginPage();
+            }
+        }
+        
+        async function fetchUsers() {
+            if (!supabase) return;
+            try {
+                const { data, error } = await supabase.from('users').select('*').order('total_points', { ascending: false });
+                if (error) throw error;
+                allUsers = data;
+                if (document.querySelector('.leaderboard-section')) {
+                    renderLeaderboard();
+                }
+            } catch(error) {
+                console.error('Error fetching users:', error);
             }
         }
         
         function updateUserDisplay() {
-            document.getElementById('userName').textContent = currentUser?.name || 'Guest';
-            document.getElementById('userPoints').textContent = `${currentUser?.total_points || 0} pts`;
+            headerUserName.textContent = currentUser?.name || 'Guest';
+            headerUserPoints.textContent = `${currentUser?.total_points || 0} pts`;
+            if (currentUser) {
+                logoutBtn.style.display = 'inline-block';
+            } else {
+                logoutBtn.style.display = 'none';
+            }
         }
-        
-        function showAuthModal() {
-            document.getElementById('authModal').style.display = 'flex';
-        }
-        
-        function hideAuthModal() {
-            document.getElementById('authModal').style.display = 'none';
-        }
-        
-        function showLoginForm() {
-            document.getElementById('loginForm').classList.remove('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
-            clearAuthError();
-        }
-        
-        function showRegisterForm() {
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-            clearAuthError();
-        }
-        
-        function clearAuthError() {
-            document.getElementById('authError').classList.add('hidden');
-        }
-        
+
         function showAuthError(message) {
             const errorEl = document.getElementById('authError');
-            errorEl.textContent = message;
-            errorEl.classList.remove('hidden');
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+            }
         }
-        
+
         async function handleLogin() {
             const pin = document.getElementById('loginPin').value.trim();
             const btn = document.getElementById('loginBtn');
             
-            clearAuthError();
+            showAuthError('');
             
             if (!supabase) {
                 showAuthError('System not ready. Please wait a moment and try again.');
@@ -771,10 +702,7 @@
             btn.textContent = 'Logging in...';
             
             try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('pin', pin);
+                const { data, error } = await supabase.from('users').select('*').eq('pin', pin);
                 
                 if (error) throw error;
                 
@@ -785,8 +713,9 @@
                 
                 currentUser = data[0];
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
-                hideAuthModal();
                 updateUserDisplay();
+                fetchUsers();
+                renderPage('betting');
                 
             } catch (err) {
                 showAuthError('Login failed: ' + err.message);
@@ -801,7 +730,7 @@
             const name = document.getElementById('registerName').value.trim();
             const btn = document.getElementById('registerBtn');
             
-            clearAuthError();
+            showAuthError('');
             
             if (!supabase) {
                 showAuthError('System not ready. Please wait a moment and try again.');
@@ -822,36 +751,24 @@
             btn.textContent = 'Creating Account...';
             
             try {
-                // Check if PIN exists
-                const { data: existingUser } = await supabase
-                    .from('users')
-                    .select('pin')
-                    .eq('pin', pin);
+                const { data: existingUser } = await supabase.from('users').select('pin').eq('pin', pin);
                 
                 if (existingUser && existingUser.length > 0) {
                     showAuthError('This PIN is already taken. Please choose another.');
                     return;
                 }
                 
-                // Create new user
                 const isAdmin = pin === '7717' || pin === '3669';
                 
-                const { data, error } = await supabase
-                    .from('users')
-                    .insert([{
-                        pin: pin,
-                        name: name,
-                        is_admin: isAdmin,
-                        total_points: 0
-                    }])
-                    .select();
+                const { data, error } = await supabase.from('users').insert([{ pin: pin, name: name, is_admin: isAdmin, total_points: 100 }]).select();
                 
                 if (error) throw error;
                 
                 currentUser = data[0];
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
-                hideAuthModal();
                 updateUserDisplay();
+                fetchUsers();
+                renderPage('betting');
                 
             } catch (err) {
                 showAuthError('Registration failed: ' + err.message);
@@ -860,92 +777,307 @@
                 btn.textContent = 'Create Account';
             }
         }
-        
+
         function handleLogout() {
             currentUser = null;
             localStorage.removeItem('cfb_user');
             betSlip = [];
-            updateBetSlip();
+            updateUserDisplay();
+            renderPage('betting');
+            showValidationMessage('');
             clearAllSelections();
-            showAuthModal();
+            renderBetSlip();
         }
-        
-        // Betting Logic
+
+        // --- SPA Routing ---
+        function renderPage(pageName) {
+            if (pageName !== 'login' && !currentUser) {
+                renderLoginPage();
+                return;
+            }
+            
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('selected'));
+            const selectedLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+            if (selectedLink) selectedLink.classList.add('selected');
+            
+            switch(pageName) {
+                case 'betting':
+                    renderBettingPage();
+                    break;
+                case 'leaderboard':
+                    renderLeaderboard();
+                    break;
+                default:
+                    renderBettingPage();
+            }
+        }
+
+        // --- Page Content Rendering ---
+        function renderLoginPage() {
+            mainContent.innerHTML = `
+                <div class="auth-modal" id="authModal">
+                    <div class="auth-card">
+                        <div id="authContent">
+                            <div class="auth-title">Welcome to CFB Grambling</div>
+                            
+                            <div id="loginForm">
+                                <div class="input-group">
+                                    <label class="label">Your PIN</label>
+                                    <input type="text" id="loginPin" class="input" placeholder="Enter your PIN">
+                                </div>
+                                <button class="btn" onclick="handleLogin()" id="loginBtn">Login</button>
+                                <button class="btn btn-secondary" onclick="showRegisterForm()">Create Account</button>
+                            </div>
+                            
+                            <div id="registerForm" class="hidden">
+                                <div class="input-group">
+                                    <label class="label">Unique PIN (4+ digits)</label>
+                                    <input type="text" id="registerPin" class="input" placeholder="Enter your unique PIN">
+                                </div>
+                                <div class="input-group">
+                                    <label class="label">Display Name</label>
+                                    <input type="text" id="registerName" class="input" placeholder="Enter your name">
+                                </div>
+                                <button class="btn" onclick="handleRegister()" id="registerBtn">Create Account</button>
+                                <button class="btn btn-secondary" onclick="showLoginForm()">Back to Login</button>
+                                
+                                <div class="admin-notice">
+                                    <strong>Admin PINs:</strong> 7717 or 3669 will create admin accounts
+                                </div>
+                            </div>
+                            
+                            <div id="authError" class="error hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Re-bind click handlers for the form buttons
+            window.showRegisterForm = () => {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('authError').classList.add('hidden');
+            };
+            window.showLoginForm = () => {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('authError').classList.add('hidden');
+            };
+        }
+
+        function renderBettingPage() {
+            if (!currentUser) {
+                renderLoginPage();
+                return;
+            }
+
+            mainContent.innerHTML = `
+                <div class="container">
+                    <div class="games-section">
+                        <h2 class="section-title">Week 1 Betting Lines</h2>
+                        
+                        <div class="game-card">
+                            <div class="game-header">
+                                <div class="game-title">Georgia vs Alabama</div>
+                                <div class="game-time">Saturday, Sep 7, 3:30 PM ET</div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Georgia</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game1', 'Georgia', 'moneyline', '-150')" data-bet="game1-georgia-moneyline">-150</div>
+                                    <div class="bet-bubble" onclick="selectBet('game1', 'Georgia', 'spread', '-3.5 (-110)')" data-bet="game1-georgia-spread">-3.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Alabama</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game1', 'Alabama', 'moneyline', '+130')" data-bet="game1-alabama-moneyline">+130</div>
+                                    <div class="bet-bubble" onclick="selectBet('game1', 'Alabama', 'spread', '+3.5 (-110)')" data-bet="game1-alabama-spread">+3.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="over-under-line">
+                                <span class="ou-label">Total: 52.5</span>
+                                <div class="bet-bubble" onclick="selectBet('game1', 'Over', 'total', 'O52.5 (-110)')" data-bet="game1-over-total">Over</div>
+                                <div class="bet-bubble" onclick="selectBet('game1', 'Under', 'total', 'U52.5 (-110)')" data-bet="game1-under-total">Under</div>
+                            </div>
+                        </div>
+
+                        <div class="game-card">
+                            <div class="game-header">
+                                <div class="game-title">Texas vs Michigan</div>
+                                <div class="game-time">Saturday, Sep 7, 7:30 PM ET</div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Texas</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game2', 'Texas', 'moneyline', '-120')" data-bet="game2-texas-moneyline">-120</div>
+                                    <div class="bet-bubble" onclick="selectBet('game2', 'Texas', 'spread', '-2.5 (-110)')" data-bet="game2-texas-spread">-2.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Michigan</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game2', 'Michigan', 'moneyline', '+100')" data-bet="game2-michigan-moneyline">+100</div>
+                                    <div class="bet-bubble" onclick="selectBet('game2', 'Michigan', 'spread', '+2.5 (-110)')" data-bet="game2-michigan-spread">+2.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="over-under-line">
+                                <span class="ou-label">Total: 45.5</span>
+                                <div class="bet-bubble" onclick="selectBet('game2', 'Over', 'total', 'O45.5 (-110)')" data-bet="game2-over-total">Over</div>
+                                <div class="bet-bubble" onclick="selectBet('game2', 'Under', 'total', 'U45.5 (-110)')" data-bet="game2-under-total">Under</div>
+                            </div>
+                        </div>
+
+                        <div class="game-card">
+                            <div class="game-header">
+                                <div class="game-title">Ohio State vs Oregon</div>
+                                <div class="game-time">Saturday, Sep 7, 8:00 PM ET</div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Ohio State</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game3', 'Ohio State', 'moneyline', '-180')" data-bet="game3-ohiostate-moneyline">-180</div>
+                                    <div class="bet-bubble" onclick="selectBet('game3', 'Ohio State', 'spread', '-4.5 (-110)')" data-bet="game3-ohiostate-spread">-4.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="team-line">
+                                <div class="team-name">Oregon</div>
+                                <div class="betting-options">
+                                    <div class="bet-bubble" onclick="selectBet('game3', 'Oregon', 'moneyline', '+155')" data-bet="game3-oregon-moneyline">+155</div>
+                                    <div class="bet-bubble" onclick="selectBet('game3', 'Oregon', 'spread', '+4.5 (-110)')" data-bet="game3-oregon-spread">+4.5</div>
+                                </div>
+                            </div>
+                            
+                            <div class="over-under-line">
+                                <span class="ou-label">Total: 58.5</span>
+                                <div class="bet-bubble" onclick="selectBet('game3', 'Over', 'total', 'O58.5 (-110)')" data-bet="game3-over-total">Over</div>
+                                <div class="bet-bubble" onclick="selectBet('game3', 'Under', 'total', 'U58.5 (-110)')" data-bet="game3-under-total">Under</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bet-slip-section">
+                        <div class="bet-slip-card">
+                            <div class="bet-slip-header">
+                                <div class="bet-slip-title">Bet Slip</div>
+                                <div class="bet-count" id="betCount">0/5</div>
+                            </div>
+                            
+                            <div id="betSlipContent">
+                                <div style="text-align: center; color: #64748b; padding: 2rem;">
+                                    Select betting options to add them here
+                                </div>
+                            </div>
+                            
+                            <div class="bet-summary">
+                                <div class="summary-row">
+                                    <span class="summary-label">Total Wagered:</span>
+                                    <span class="summary-value" id="totalWagered">$0.00</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span class="summary-label">Remaining:</span>
+                                    <span class="summary-value remaining-amount" id="remainingAmount">$20.00</span>
+                                </div>
+                            </div>
+                            
+                            <button class="submit-btn" id="submitBtn" onclick="handleSubmitBets()" disabled>Submit Bets</button>
+                            
+                            <div id="validationMessage" class="validation-message hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Re-bind event handlers after rendering
+            renderBetSlip();
+        }
+
+        function renderLeaderboard() {
+            if (!currentUser) {
+                renderLoginPage();
+                return;
+            }
+
+            mainContent.innerHTML = `
+                <div class="leaderboard-section">
+                    <h2 class="section-title">Leaderboard</h2>
+                    <div class="leaderboard-card">
+                        <div class="leaderboard-header">
+                            <div class="rank-header">Rank</div>
+                            <div class="user-header">User</div>
+                            <div class="points-header">Points</div>
+                            <div class="user-id-header">User ID</div>
+                        </div>
+                        <div id="leaderboardList"></div>
+                    </div>
+                </div>
+            `;
+            const leaderboardList = document.getElementById('leaderboardList');
+            if (allUsers.length === 0) {
+                leaderboardList.innerHTML = `<p style="text-align: center; color: #64748b; padding: 2rem;">No users found.</p>`;
+            } else {
+                leaderboardList.innerHTML = allUsers.map((user, index) => `
+                    <div class="leaderboard-item">
+                        <div class="rank">${index + 1}</div>
+                        <div class="user-name">${user.name}</div>
+                        <div class="points">${user.total_points}</div>
+                        <div class="user-id">${user.pin}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // --- Betting Logic ---
         function selectBet(gameId, team, type, odds) {
             const betKey = `${gameId}-${team.toLowerCase().replace(/\s+/g, '')}-${type}`;
-            
-            // Remove conflicting bets for this game
-            removeConflictingBets(gameId, type);
-            
-            // Check if this bet is already selected
-            const existingBetIndex = betSlip.findIndex(bet => bet.key === betKey);
-            
-            if (existingBetIndex >= 0) {
-                // Remove the bet
-                betSlip.splice(existingBetIndex, 1);
-                document.querySelector(`[data-bet="${betKey}"]`).classList.remove('selected');
+            const isTotalBet = type === 'total';
+
+            // Find existing bet for the same game
+            const existingBetIndex = betSlip.findIndex(bet => bet.gameId === gameId);
+
+            // Handle selection
+            if (existingBetIndex !== -1) {
+                // If the same bet is clicked again, remove it
+                if (betSlip[existingBetIndex].key === betKey) {
+                    betSlip.splice(existingBetIndex, 1);
+                } else {
+                    // Replace the existing bet with the new one
+                    const newBet = { key: betKey, gameId, team, type, odds, amount: MIN_BET };
+                    betSlip.splice(existingBetIndex, 1, newBet);
+                }
             } else {
                 // Check bet limits
-                if (betSlip.length >= 5) {
+                if (betSlip.length >= BET_LIMIT) {
                     showValidationMessage('Maximum 5 bets allowed');
                     return;
                 }
-                
-                // Add the bet
-                const bet = {
-                    key: betKey,
-                    gameId: gameId,
-                    team: team,
-                    type: type,
-                    odds: odds,
-                    amount: 3
-                };
-                
-                betSlip.push(bet);
-                document.querySelector(`[data-bet="${betKey}"]`).classList.add('selected');
+                const newBet = { key: betKey, gameId, team, type, odds, amount: MIN_BET };
+                betSlip.push(newBet);
             }
             
-            updateBetSlip();
+            clearAllSelections();
+            renderBetSlip();
             validateBets();
         }
-        
-        function removeConflictingBets(gameId, newType) {
-            // Remove conflicting selections for the same game
-            const toRemove = [];
-            
-            betSlip.forEach((bet, index) => {
-                if (bet.gameId === gameId) {
-                    // Can't have both moneyline and spread
-                    if ((newType === 'moneyline' && bet.type === 'spread') ||
-                        (newType === 'spread' && bet.type === 'moneyline')) {
-                        toRemove.push(index);
-                    }
-                    // Can't have both over and under
-                    if ((newType === 'total' && bet.type === 'total')) {
-                        toRemove.push(index);
-                    }
-                }
-            });
-            
-            // Remove in reverse order to maintain indices
-            toRemove.reverse().forEach(index => {
-                const removedBet = betSlip[index];
-                document.querySelector(`[data-bet="${removedBet.key}"]`).classList.remove('selected');
-                betSlip.splice(index, 1);
-            });
-        }
-        
+
         function removeBet(index) {
             const bet = betSlip[index];
-            document.querySelector(`[data-bet="${bet.key}"]`).classList.remove('selected');
+            document.querySelector(`[data-bet="${bet.key}"]`)?.classList.remove('selected');
             betSlip.splice(index, 1);
             updateBetSlip();
             validateBets();
         }
         
         function updateBetAmount(index, amount) {
-            if (amount >= 3) {
-                betSlip[index].amount = parseFloat(amount);
+            const betAmount = parseFloat(amount);
+            if (!isNaN(betAmount) && betAmount >= MIN_BET) {
+                betSlip[index].amount = betAmount;
                 updateBetSlipSummary();
                 validateBets();
             }
@@ -955,7 +1087,9 @@
             const content = document.getElementById('betSlipContent');
             const betCount = document.getElementById('betCount');
             
-            betCount.textContent = `${betSlip.length}/5`;
+            if (!content || !betCount) return;
+
+            betCount.textContent = `${betSlip.length}/${BET_LIMIT}`;
             
             if (betSlip.length === 0) {
                 content.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">Select betting options to add them here</div>';
@@ -970,8 +1104,8 @@
                         <div class="bet-odds">${bet.odds}</div>
                         <input type="number" 
                                class="bet-amount-input" 
-                               min="3" 
-                               max="20" 
+                               min="${MIN_BET}" 
+                               max="${WAGER_LIMIT}" 
                                step="0.01" 
                                value="${bet.amount}"
                                onchange="updateBetAmount(${index}, this.value)"
@@ -981,23 +1115,27 @@
             }
             
             updateBetSlipSummary();
+            betSlip.forEach(bet => {
+                const bubble = document.querySelector(`[data-bet="${bet.key}"]`);
+                if (bubble) bubble.classList.add('selected');
+            });
         }
         
         function updateBetSlipSummary() {
             const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
-            const remaining = 20 - total;
+            const remaining = WAGER_LIMIT - total;
             
-            document.getElementById('totalWagered').textContent = `${total.toFixed(2)}`;
-            
-            const remainingEl = document.getElementById('remainingAmount');
-            remainingEl.textContent = `${remaining.toFixed(2)}`;
-            
-            // Update color based on remaining amount
-            remainingEl.className = 'summary-value remaining-amount';
-            if (remaining < 0) {
-                remainingEl.classList.add('negative');
-            } else if (remaining === 0) {
-                remainingEl.classList.add('zero');
+            const totalWageredEl = document.getElementById('totalWagered');
+            const remainingAmountEl = document.getElementById('remainingAmount');
+            if (totalWageredEl) totalWageredEl.textContent = `$${total.toFixed(2)}`;
+            if (remainingAmountEl) {
+                remainingAmountEl.textContent = `$${remaining.toFixed(2)}`;
+                remainingAmountEl.className = 'summary-value remaining-amount';
+                if (remaining < 0) {
+                    remainingAmountEl.classList.add('negative');
+                } else if (Math.abs(remaining) < 0.01) {
+                    remainingAmountEl.classList.add('zero');
+                }
             }
         }
         
@@ -1005,42 +1143,75 @@
             const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
             const submitBtn = document.getElementById('submitBtn');
             const validationMessage = document.getElementById('validationMessage');
+            if (!submitBtn || !validationMessage) return;
             
             let isValid = true;
             let message = '';
             
             if (betSlip.length < 3) {
                 isValid = false;
-                message = 'Select at least 3 games to bet on';
-            } else if (total !== 20) {
+                message = `Select at least 3 games to bet on`;
+            } else if (Math.abs(total - WAGER_LIMIT) >= 0.01) {
                 isValid = false;
-                if (total < 20) {
-                    message = `Add ${(20 - total).toFixed(2)} more to reach $20 total`;
+                if (total < WAGER_LIMIT) {
+                    message = `Add $${(WAGER_LIMIT - total).toFixed(2)} more to reach $${WAGER_LIMIT} total`;
                 } else {
-                    message = `Remove ${(total - 20).toFixed(2)} to reach $20 total`;
+                    message = `Remove $${(total - WAGER_LIMIT).toFixed(2)} to reach $${WAGER_LIMIT} total`;
                 }
-            } else if (betSlip.some(bet => (bet.amount || 0) < 3)) {
+            } else if (betSlip.some(bet => (bet.amount || 0) < MIN_BET)) {
                 isValid = false;
-                message = 'All bets must be at least $3';
+                message = `All bets must be at least $${MIN_BET}`;
             }
             
             submitBtn.disabled = !isValid;
-            
-            if (message) {
-                validationMessage.textContent = message;
-                validationMessage.classList.remove('hidden');
-            } else {
-                validationMessage.classList.add('hidden');
-            }
+            showValidationMessage(message);
         }
         
         function showValidationMessage(message) {
             const validationMessage = document.getElementById('validationMessage');
-            validationMessage.textContent = message;
-            validationMessage.classList.remove('hidden');
-            setTimeout(() => {
-                validationMessage.classList.add('hidden');
-            }, 3000);
+            if (validationMessage) {
+                validationMessage.textContent = message;
+                validationMessage.classList.toggle('hidden', !message);
+            }
+        }
+        
+        async function handleSubmitBets() {
+            if (!currentUser) {
+                showValidationMessage('Please log in to submit bets.');
+                return;
+            }
+            
+            try {
+                // Insert a new bet record for the user
+                const { data, error } = await supabase
+                    .from('bets')
+                    .insert([{ user_id: currentUser.id, bets: betSlip, created_at: new Date() }]);
+                
+                if (error) throw error;
+                
+                // Update user points (dummy logic)
+                const newPoints = currentUser.total_points + 5;
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ total_points: newPoints })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+                
+                // Update local state and UI
+                currentUser.total_points = newPoints;
+                localStorage.setItem('cfb_user', JSON.stringify(currentUser));
+                updateUserDisplay();
+                
+                betSlip = [];
+                renderBetSlip();
+                clearAllSelections();
+                showValidationMessage('Bets submitted successfully!');
+                
+            } catch (err) {
+                console.error('Submission failed:', err.message);
+                showValidationMessage(`Failed to submit bets: ${err.message}`);
+            }
         }
         
         function clearAllSelections() {
@@ -1048,9 +1219,6 @@
                 bubble.classList.remove('selected');
             });
         }
-        
-        // Initialize bet slip display
-        updateBetSlip();
     </script>
 </body>
 </html>
