@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CFB Grambling</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase/2.39.7/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -500,18 +500,56 @@
         
         // Initialize Supabase when page loads
         function initializeSupabase() {
-            if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                console.log('Supabase initialized successfully');
-            } else {
-                console.log('Supabase not ready, retrying...');
-                setTimeout(initializeSupabase, 100);
+            try {
+                if (window.supabase && window.supabase.createClient) {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    console.log('Supabase initialized successfully');
+                    return true;
+                } else {
+                    console.log('Supabase createClient not found, retrying...');
+                    return false;
+                }
+            } catch (error) {
+                console.log('Supabase initialization error:', error);
+                return false;
             }
         }
         
         // Check for existing session on load
         window.addEventListener('DOMContentLoaded', () => {
-            initializeSupabase();
+            // Try multiple times to initialize
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            const tryInit = () => {
+                attempts++;
+                if (initializeSupabase()) {
+                    // Success - check for saved user
+                    const savedUser = localStorage.getItem('cfb_user');
+                    if (savedUser) {
+                        currentUser = JSON.parse(savedUser);
+                        showDashboard();
+                    }
+                } else if (attempts < maxAttempts) {
+                    setTimeout(tryInit, 100);
+                } else {
+                    console.error('Failed to initialize Supabase after', maxAttempts, 'attempts');
+                    // Show error on page
+                    document.body.innerHTML = `
+                        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #6b46c1, #1e40af); color: white; text-align: center; padding: 2rem;">
+                            <div>
+                                <h1>🔧 Setup Error</h1>
+                                <p>Unable to load Supabase. Please check your internet connection and refresh the page.</p>
+                                <button onclick="window.location.reload()" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-top: 1rem; cursor: pointer;">
+                                    Refresh Page
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            };
+            
+            tryInit();
             const savedUser = localStorage.getItem('cfb_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
