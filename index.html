@@ -317,37 +317,21 @@
 
     <!-- The user ID display for multi-user purposes -->
     <div class="mt-4 text-xs text-gray-500">
-        User ID: <span id="user-id-display">N/A</span>
+        User PIN: <span id="user-pin-display">N/A</span>
     </div>
 </div>
 
+<!-- Supabase Client Library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, setLogLevel, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    // --- Supabase Configuration ---
+    const SUPABASE_URL = 'https://bumxibdfhturlljvqfnn.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bXhpYmRmaHR1cmxsanZxZm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjA2NDMsImV4cCI6MjA3MjIzNjY0M30.3B2SHPrDWYGTYLXUieEoO2Nx40CoOlUD_B-8uIKw21s';
     
-    // Set Firestore log level for debugging
-    setLogLevel('debug');
-    
-    // Global variables from the canvas environment
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    // Create a single Supabase client for the app
+    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Initialize Firebase
-    let app, db, auth;
-    let userId = null;
-    let userPin = null;
-
-    try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-    } catch (error) {
-        showMessage('Error initializing Firebase. Please check the configuration.', 'error');
-        console.error('Firebase initialization error:', error);
-    }
-    
     // DOM Elements
     const screenTitleEl = document.getElementById('screen-title');
     const authContainerEl = document.getElementById('auth-container');
@@ -356,7 +340,7 @@
     const loginScreenEl = document.getElementById('login-screen');
     const createAccountScreenEl = document.getElementById('create-account-screen');
     const messageContainerEl = document.getElementById('message-container');
-    const userIdDisplayEl = document.getElementById('user-id-display');
+    const userPinDisplayEl = document.getElementById('user-pin-display');
     const userDisplayEl = document.getElementById('user-display');
     const createPinInput = document.getElementById('create-pin');
     const createNameInput = document.getElementById('create-name');
@@ -374,39 +358,20 @@
 
     const currentWagersMessageEl = document.getElementById('current-wagers-message');
     const currentWagersDisplayEl = document.getElementById('current-wagers-display');
-    const wagersListEl = document.getElementById('wagers-list');
     const historyContainerEl = document.getElementById('history-container');
     const fetchOddsButtonEl = document.getElementById('fetch-odds-button');
     const adminStatusEl = document.getElementById('admin-status');
 
     // State
-    let isAuthReady = false;
+    let userPin = null;
     let selectedWagers = {};
     let currentOdds = [];
     
-    // Mock Data
+    // Mock Data (will eventually be replaced by Supabase data)
     const currentWeek = "Week_1";
     const bettingDeadline = new Date();
     bettingDeadline.setDate(bettingDeadline.getDate() + 5); 
     const isBettingOpen = new Date() < bettingDeadline;
-
-    // Firebase Auth Listener
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            userId = user.uid;
-            userIdDisplayEl.textContent = userId;
-            isAuthReady = true;
-            console.log('User signed in with UID:', userId);
-        } else {
-            userId = null;
-            userPin = null;
-            userIdDisplayEl.textContent = 'N/A';
-            userDisplayEl.textContent = '';
-            isAuthReady = true;
-            console.log('User signed out.');
-            showAuthUI();
-        }
-    });
 
     // Function to show a message in the message box
     function showMessage(message, type) {
@@ -459,6 +424,7 @@
         appContainerEl.classList.remove('hidden');
         userDisplayEl.textContent = `Welcome, ${profile.name}!`;
         userPin = profile.pin;
+        userPinDisplayEl.textContent = userPin;
 
         if (profile.isAdmin) {
             adminButtonEl.classList.remove('hidden');
@@ -468,8 +434,8 @@
         
         selectedWagers = {};
         updateBetSlipUI();
-        listenForOdds(); // Start listening for odds updates
-        listenForAllWagers();
+        listenForOdds();
+        listenForUserWagers();
         showPage('home-page');
     }
 
@@ -484,14 +450,11 @@
     document.getElementById('show-create-btn').addEventListener('click', () => showScreen('create'));
     document.getElementById('back-from-login-btn').addEventListener('click', () => showScreen('initial'));
     document.getElementById('back-from-create-btn').addEventListener('click', () => showScreen('initial'));
-    logoutButtonEl.addEventListener('click', async () => {
-        try {
-            await signOut(auth);
-            showMessage('You have been logged out.', 'success');
-        } catch (e) {
-            console.error('Error logging out:', e);
-            showMessage('Logout failed. Please try again.', 'error');
-        }
+    logoutButtonEl.addEventListener('click', () => {
+        userPin = null;
+        userPinDisplayEl.textContent = 'N/A';
+        userDisplayEl.textContent = '';
+        showAuthUI();
     });
 
     document.querySelectorAll('.nav-button').forEach(button => {
@@ -511,9 +474,14 @@
         }
 
         try {
-            const userDocRef = doc(db, `/artifacts/${appId}/public/data/users/${pin}`);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('pin')
+                .eq('pin', pin);
+            
+            if (error) throw error;
+            
+            if (data.length > 0) {
                 showMessage('This PIN is already taken. Please choose another.', 'error');
             } else {
                 hideMessage();
@@ -536,23 +504,31 @@
         }
         
         try {
-            const userDocRef = doc(db, `/artifacts/${appId}/public/data/users/${pin}`);
-            const userDocSnap = await getDoc(userDocRef);
+            const { data, error } = await supabase
+                .from('users')
+                .select('pin')
+                .eq('pin', pin);
             
-            if (userDocSnap.exists()) {
+            if (error) throw error;
+            
+            if (data.length > 0) {
                 showMessage('This PIN is already taken. Please choose another.', 'error');
                 return;
             }
 
             const isAdmin = (pin === '7717' || pin === '3669');
 
-            await setDoc(userDocRef, {
-                name: name,
-                totalPoints: 0,
-                isAdmin: isAdmin,
-                pin: pin,
-            });
+            const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                    pin: pin,
+                    name: name,
+                    totalPoints: 0,
+                    isAdmin: isAdmin
+                });
 
+            if (insertError) throw insertError;
+            
             showMessage('Account created successfully! You can now log in.', 'success');
             createNameInput.value = '';
             createPinInput.value = '';
@@ -574,11 +550,15 @@
         }
 
         try {
-            const userDocRef = doc(db, `/artifacts/${appId}/public/data/users/${pin}`);
-            const userDocSnap = await getDoc(userDocRef);
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('pin', pin);
             
-            if (userDocSnap.exists()) {
-                const profile = userDocSnap.data();
+            if (error) throw error;
+
+            if (data.length > 0) {
+                const profile = data[0];
                 showMessage('Login successful! Redirecting...', 'success');
                 showAppUI(profile);
             } else {
@@ -601,28 +581,33 @@
         const validation = validateWagers();
         if (validation.isValid) {
             try {
-                const wagersDocRef = doc(db, `/artifacts/${appId}/public/data/wagers/${userPin}`);
-                const wagersDocSnap = await getDoc(wagersDocRef);
+                const { data: existingWager, error: fetchError } = await supabase
+                    .from('wagers')
+                    .select('*')
+                    .eq('pin', userPin)
+                    .eq('week', currentWeek);
                 
-                const newWager = { week: currentWeek, picks: Object.values(selectedWagers), submittedAt: new Date() };
+                if (fetchError) throw fetchError;
                 
-                if (wagersDocSnap.exists()) {
-                    const wagersData = wagersDocSnap.data().wagers || [];
-                    const existingWagerIndex = wagersData.findIndex(w => w.week === currentWeek);
-
-                    if (existingWagerIndex !== -1) {
-                        wagersData[existingWagerIndex] = newWager;
-                    } else {
-                        wagersData.push(newWager);
-                    }
-                    
-                    await updateDoc(wagersDocRef, { wagers: wagersData });
-                    showMessage('Wagers submitted and saved successfully!', 'success');
-
+                const picks = Object.values(selectedWagers);
+                
+                if (existingWager.length > 0) {
+                    const { error: updateError } = await supabase
+                        .from('wagers')
+                        .update({ picks: JSON.stringify(picks) })
+                        .eq('pin', userPin)
+                        .eq('week', currentWeek);
+                    if (updateError) throw updateError;
+                    showMessage('Wagers updated successfully!', 'success');
                 } else {
-                    await setDoc(wagersDocRef, {
-                        wagers: [newWager]
-                    });
+                    const { error: insertError } = await supabase
+                        .from('wagers')
+                        .insert({
+                            pin: userPin,
+                            week: currentWeek,
+                            picks: JSON.stringify(picks)
+                        });
+                    if (insertError) throw insertError;
                     showMessage('Wagers submitted and saved successfully!', 'success');
                 }
                 
@@ -927,10 +912,9 @@
             const wagerHistoryDiv = document.createElement('div');
             wagerHistoryDiv.className = 'bg-gray-700 p-4 rounded-lg text-left';
             
-            const submittedDate = wager.submittedAt ? new Date(wager.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A';
-            
             let picksHtml = '';
-            wager.picks.forEach(pick => {
+            const picks = JSON.parse(wager.picks); // Parse the JSON string
+            picks.forEach(pick => {
                  const winnings = calculateWinnings(pick.amount, pick.odds || 0);
                  const oddsDisplay = pick.odds > 0 ? `+${pick.odds}` : pick.odds.toString();
 
@@ -946,7 +930,7 @@
             
             wagerHistoryDiv.innerHTML = `
                 <h4 class="text-lg font-bold">${wager.week}</h4>
-                <p class="text-sm text-gray-400">Submitted: ${submittedDate}</p>
+                <p class="text-sm text-gray-400">Submitted: ${new Date(wager.created_at).toLocaleDateString()}</p>
                 ${picksHtml}
             `;
             historyContainerEl.appendChild(wagerHistoryDiv);
@@ -964,30 +948,63 @@
         showPage('home-page');
     }
     
-    function listenForAllWagers() {
+    function listenForUserWagers() {
         if (!userPin) return;
-        const wagersDocRef = doc(db, `/artifacts/${appId}/public/data/wagers/${userPin}`);
-        onSnapshot(wagersDocRef, (docSnap) => {
-            const wagersData = docSnap.data()?.wagers || [];
-            renderAllWagers(wagersData);
-        }, (error) => {
-            console.error('Error listening for wagers:', error);
-            showMessage('Error loading your wagers. Please try again.', 'error');
-        });
+        supabase
+            .from('wagers')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'wagers' }, payload => {
+                // Fetch the latest wagers for the current user
+                supabase
+                    .from('wagers')
+                    .select('*')
+                    .eq('pin', userPin)
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error('Error listening for wagers:', error);
+                        } else {
+                            renderAllWagers(data);
+                        }
+                    });
+            })
+            .subscribe();
     }
 
-    // Function to listen for real-time odds updates from Firestore
+    // Function to listen for real-time odds updates from Supabase
     function listenForOdds() {
-        const oddsDocRef = doc(db, `/artifacts/${appId}/public/data/odds/current`);
-        onSnapshot(oddsDocRef, (docSnap) => {
-            console.log('Firestore: Real-time odds update received.');
-            const oddsData = docSnap.data()?.odds || [];
-            currentOdds = oddsData;
-            renderOdds();
-        }, (error) => {
-            console.error('Error listening for odds:', error);
-            oddsContainerEl.innerHTML = `<p class="text-gray-400">Error loading odds. Please try again.</p>`;
-        });
+        supabase
+            .from('odds')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'odds' }, payload => {
+                // Fetch the latest odds data
+                supabase
+                    .from('odds')
+                    .select('*')
+                    .eq('id', 'current')
+                    .single()
+                    .then(({ data, error }) => {
+                        if (error) {
+                            console.error('Error fetching odds:', error);
+                        } else {
+                            currentOdds = JSON.parse(data.odds);
+                            renderOdds();
+                        }
+                    });
+            })
+            .subscribe();
+        
+        // Initial fetch to load odds immediately
+        supabase
+            .from('odds')
+            .select('*')
+            .eq('id', 'current')
+            .single()
+            .then(({ data, error }) => {
+                if (error) {
+                    console.error('Initial odds fetch error:', error);
+                } else {
+                    currentOdds = JSON.parse(data.odds);
+                    renderOdds();
+                }
+            });
     }
 
     // Admin Panel Functions
@@ -1025,12 +1042,19 @@
                 console.log('Admin Panel: API response received. Parsing JSON...');
                 const fetchedOdds = JSON.parse(textPart);
                 if (Array.isArray(fetchedOdds) && fetchedOdds.length > 0) {
-                    console.log('Admin Panel: Parsed JSON successfully. Updating Firestore...');
-                    await setDoc(doc(db, `/artifacts/${appId}/public/data/odds/current`), {
-                        odds: fetchedOdds,
-                        fetchedAt: new Date()
-                    });
-                    console.log('Admin Panel: Firestore updated successfully!');
+                    console.log('Admin Panel: Parsed JSON successfully. Updating Supabase...');
+                    
+                    const { error } = await supabase
+                        .from('odds')
+                        .upsert({
+                            id: 'current',
+                            odds: JSON.stringify(fetchedOdds),
+                            fetched_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    
+                    console.log('Admin Panel: Supabase updated successfully!');
                     adminStatusEl.innerHTML = '<span class="text-green-400">Odds updated successfully!</span>';
                 } else {
                     console.error('Admin Panel: Failed to parse odds. Invalid data format received.');
@@ -1048,20 +1072,7 @@
         }
     }
     
-    async function initAuth() {
-        try {
-            if (initialAuthToken) {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-                await signInAnonymously(auth);
-            }
-        } catch (error) {
-            console.error('Initial authentication error:', error);
-            showMessage('Authentication failed. Please check your internet connection and try again.', 'error');
-        }
-    }
-    
-    initAuth();
+    showAuthUI();
 </script>
 
 </body>
