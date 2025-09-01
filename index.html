@@ -852,24 +852,38 @@
         
         // Betting Functions
         function selectBet(gameId, team, type, odds) {
-            const betKey = `${gameId}-${team.toLowerCase().replace(/\s+/g, '')}-${type}`;
-            const betElement = document.querySelector(`[data-bet="${betKey}"]`);
+            console.log('selectBet called:', gameId, team, type, odds);
             
-            if (!betElement) return;
+            const betKey = `${gameId}-${team.toLowerCase().replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '')}-${type}`;
+            console.log('Generated betKey:', betKey);
+            
+            const betElement = document.querySelector(`[data-bet="${betKey}"]`);
+            console.log('Found betElement:', betElement);
+            
+            if (!betElement) {
+                console.log('No bet element found for key:', betKey);
+                return;
+            }
             
             const existingBetIndex = betSlip.findIndex(bet => bet.key === betKey);
+            console.log('Existing bet index:', existingBetIndex);
             
             if (existingBetIndex >= 0) {
+                // Remove the bet
+                console.log('Removing existing bet');
                 betSlip.splice(existingBetIndex, 1);
                 betElement.classList.remove('selected');
             } else {
+                // Check bet limits
                 if (betSlip.length >= 5) {
                     showValidationMessage('Maximum 5 bets allowed');
                     return;
                 }
                 
+                console.log('Adding new bet');
                 removeConflictingBets(gameId, type);
                 
+                // Override over/under odds to -110
                 let finalOdds = odds;
                 if (type === 'total') {
                     if (odds.includes('O') || odds.includes('U')) {
@@ -887,8 +901,10 @@
                     amount: 3
                 };
                 
+                console.log('Created bet object:', bet);
                 betSlip.push(bet);
                 betElement.classList.add('selected');
+                console.log('Added selected class, betSlip length:', betSlip.length);
             }
             
             updateBetSlip();
@@ -1086,9 +1102,8 @@
         }
         
         function openBetSlip() {
-            if (betSlip.length > 0) {
-                document.getElementById('betSlipModal').style.display = 'block';
-            }
+            console.log('openBetSlip called, betSlip length:', betSlip.length);
+            document.getElementById('betSlipModal').style.display = 'block';
         }
         
         function closeBetSlip() {
@@ -1256,15 +1271,15 @@
                         
                         <div class="team-row">
                             <div class="team-name">${awayTeam}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'moneyline', '${awayML > 0 ? '+' + awayML : awayML}')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '')}-moneyline">${awayML > 0 ? '+' + awayML : awayML}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'spread', '${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point} (${awaySpread?.price > 0 ? '+' : ''}${awaySpread?.price})')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '')}-spread">${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'moneyline', '${awayML > 0 ? '+' + awayML : awayML}')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '')}-moneyline">${awayML > 0 ? '+' + awayML : awayML}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'spread', '${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point} (${awaySpread?.price > 0 ? '+' : ''}${awaySpread?.price})')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '')}-spread">${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', 'Over', 'total', 'O${overTotal?.point} (-110)')" data-bet="${gameId}-over">O${overTotal?.point}</div>
                         </div>
                         
                         <div class="team-row">
                             <div class="team-name">${homeTeam}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'moneyline', '${homeML > 0 ? '+' + homeML : homeML}')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '')}-moneyline">${homeML > 0 ? '+' + homeML : homeML}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'spread', '${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point} (${homeSpread?.price > 0 ? '+' : ''}${homeSpread?.price})')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '')}-spread">${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'moneyline', '${homeML > 0 ? '+' + homeML : homeML}')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '')}-moneyline">${homeML > 0 ? '+' + homeML : homeML}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'spread', '${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point} (${homeSpread?.price > 0 ? '+' : ''}${homeSpread?.price})')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '').replace(/[^a-zA-Z0-9]/g, '')}-spread">${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', 'Under', 'total', 'U${underTotal?.point} (-110)')" data-bet="${gameId}-under">U${underTotal?.point}</div>
                         </div>
                     </div>
