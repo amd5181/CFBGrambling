@@ -22,7 +22,8 @@
         /* Navigation Bubbles */
         .nav-bubbles {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
             gap: 0.75rem;
             padding: 1rem;
             background: rgba(15, 23, 42, 0.8);
@@ -32,6 +33,29 @@
             top: 0;
             z-index: 100;
             overflow-x: auto;
+        }
+        
+        .nav-left {
+            display: flex;
+            gap: 0.75rem;
+            flex: 1;
+        }
+        
+        .logout-btn {
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(220, 38, 38, 0.3);
         }
         
         .nav-bubble {
@@ -197,17 +221,19 @@
         .bet-slip-content {
             position: absolute;
             bottom: 0;
-            left: 0;
-            right: 0;
+            left: 50%;
+            transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.98);
-            border-top-left-radius: 1rem;
-            border-top-right-radius: 1rem;
-            max-height: 80vh;
+            border-radius: 1rem;
+            max-height: 70vh;
             overflow-y: auto;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
         }
         
         .bet-slip-header {
-            padding: 1.5rem 1rem 1rem;
+            padding: 1rem;
             border-bottom: 1px solid rgba(71, 85, 105, 0.4);
             display: flex;
             justify-content: space-between;
@@ -215,7 +241,7 @@
         }
         
         .bet-slip-title {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 700;
         }
         
@@ -223,62 +249,71 @@
             background: rgba(71, 85, 105, 0.4);
             border: none;
             color: white;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
         
         .bet-item {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.2);
         }
         
-        .bet-item-header {
+        .bet-item:last-of-type {
+            border-bottom: none;
+        }
+        
+        .bet-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0.5rem;
         }
         
+        .bet-info {
+            flex: 1;
+        }
+        
         .bet-team {
             font-weight: 600;
             color: #e2e8f0;
+            font-size: 0.9rem;
         }
         
-        .bet-type {
-            background: rgba(29, 78, 216, 0.3);
-            color: #93c5fd;
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
+        .bet-details {
+            color: #94a3b8;
+            font-size: 0.8rem;
         }
         
-        .remove-bet {
+        .bet-remove {
             background: rgba(220, 38, 38, 0.2);
             border: none;
             color: #fca5a5;
-            padding: 0.25rem 0.5rem;
+            padding: 0.25rem;
             border-radius: 0.25rem;
             cursor: pointer;
             font-size: 0.75rem;
+            margin-left: 0.5rem;
         }
         
-        .bet-odds {
-            color: #94a3b8;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
+        .bet-amount-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
         
         .bet-amount-input {
             background: rgba(71, 85, 105, 0.3);
             border: 1px solid rgba(100, 116, 139, 0.4);
-            border-radius: 0.375rem;
-            padding: 0.5rem;
+            border-radius: 0.25rem;
+            padding: 0.4rem;
             color: white;
-            width: 100%;
-            font-size: 0.9rem;
+            width: 80px;
+            font-size: 0.85rem;
+            text-align: center;
         }
         
         .bet-amount-input:focus {
@@ -286,22 +321,50 @@
             border-color: #1d4ed8;
         }
         
+        .bet-winnings {
+            color: #6ee7b7;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
         .bet-slip-footer {
             padding: 1rem;
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(30, 41, 59, 0.6);
         }
         
-        .bet-summary {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+        .requirements {
+            background: rgba(71, 85, 105, 0.3);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
             margin-bottom: 1rem;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         
-        .summary-item {
+        .requirement-row {
             display: flex;
             justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .requirement-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .req-label {
+            color: #94a3b8;
+        }
+        
+        .req-value {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+        
+        .req-value.error {
+            color: #fca5a5;
+        }
+        
+        .req-value.success {
+            color: #6ee7b7;
         }
         
         .submit-btn {
@@ -309,9 +372,9 @@
             background: linear-gradient(135deg, #16a34a, #15803d);
             border: none;
             color: white;
-            padding: 1rem;
+            padding: 0.75rem;
             border-radius: 0.5rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -327,9 +390,9 @@
             background: rgba(245, 158, 11, 0.2);
             border: 1px solid rgba(245, 158, 11, 0.3);
             color: #fbbf24;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
             text-align: center;
             margin-top: 0.5rem;
         }
@@ -492,12 +555,15 @@
 <body>
     <!-- Navigation -->
     <div class="nav-bubbles">
-        <div class="nav-bubble active" onclick="showPage('thisWeek')">This Week</div>
-        <div class="nav-bubble" onclick="showPage('myBets')">My Bets</div>
-        <div class="nav-bubble" onclick="showPage('currentWeekBets')">Current Week's Bets</div>
-        <div class="nav-bubble" onclick="showPage('leaderboard')">Leaderboard</div>
-        <div class="nav-bubble admin hidden" id="adminNav" onclick="showPage('admin')">Admin</div>
-        <div class="nav-bubble" onclick="showPage('settings')">Settings</div>
+        <div class="nav-left">
+            <div class="nav-bubble active" onclick="showPage('thisWeek')">This Week</div>
+            <div class="nav-bubble" onclick="showPage('myBets')">My Bets</div>
+            <div class="nav-bubble" onclick="showPage('currentWeekBets')">Current Week's Bets</div>
+            <div class="nav-bubble" onclick="showPage('leaderboard')">Leaderboard</div>
+            <div class="nav-bubble admin hidden" id="adminNav" onclick="showPage('admin')">Admin</div>
+            <div class="nav-bubble" onclick="showPage('settings')">Settings</div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">Logout</button>
     </div>
 
     <!-- Main Container -->
@@ -657,24 +723,24 @@
             </div>
             
             <div id="betSlipItems">
-                <div style="text-align: center; color: #64748b; padding: 2rem;">
+                <div style="text-align: center; color: #64748b; padding: 1.5rem;">
                     No bets selected
                 </div>
             </div>
             
             <div class="bet-slip-footer">
-                <div class="bet-summary">
-                    <div class="summary-item">
-                        <span>Bets:</span>
-                        <span id="betCountSummary">0/5</span>
+                <div class="requirements">
+                    <div class="requirement-row">
+                        <span class="req-label">Games:</span>
+                        <span class="req-value" id="gamesReq">0 selected</span>
                     </div>
-                    <div class="summary-item">
-                        <span>Total:</span>
-                        <span id="totalWagered">$0.00</span>
+                    <div class="requirement-row">
+                        <span class="req-label">Total:</span>
+                        <span class="req-value" id="totalReq">$0.00</span>
                     </div>
-                    <div class="summary-item">
-                        <span>Remaining:</span>
-                        <span id="remainingAmount">$20.00</span>
+                    <div class="requirement-row">
+                        <span class="req-label">Remaining:</span>
+                        <span class="req-value" id="remainingReq">$20.00</span>
                     </div>
                 </div>
                 
@@ -710,10 +776,6 @@
                 </div>
                 <button class="btn" onclick="handleRegister()" id="registerBtn">Create Account</button>
                 <button class="btn btn-secondary" onclick="showLoginForm()">Back to Login</button>
-                
-                <div class="admin-notice">
-                    <strong>Admin PINs:</strong> 7717 or 3669 will create admin accounts
-                </div>
             </div>
             
             <div id="authError" class="error hidden"></div>
@@ -939,6 +1001,9 @@
         // Betting Logic
         function selectBet(gameId, team, type, odds) {
             const betKey = `${gameId}-${team.toLowerCase().replace(/\s+/g, '')}-${type}`;
+            const betElement = document.querySelector(`[data-bet="${betKey}"]`);
+            
+            if (!betElement) return;
             
             // Check if already selected
             const existingBetIndex = betSlip.findIndex(bet => bet.key === betKey);
@@ -946,7 +1011,7 @@
             if (existingBetIndex >= 0) {
                 // Remove the bet
                 betSlip.splice(existingBetIndex, 1);
-                document.querySelector(`[data-bet="${betKey}"]`).classList.remove('selected');
+                betElement.classList.remove('selected');
             } else {
                 // Check bet limits
                 if (betSlip.length >= 5) {
@@ -957,18 +1022,27 @@
                 // Remove conflicting bets for this game
                 removeConflictingBets(gameId, type);
                 
+                // Override over/under odds to -110
+                let finalOdds = odds;
+                if (type === 'total') {
+                    if (odds.includes('O') || odds.includes('U')) {
+                        const point = odds.match(/[OU](\d+\.?\d*)/)?.[1];
+                        finalOdds = odds.includes('O') ? `O${point} (-110)` : `U${point} (-110)`;
+                    }
+                }
+                
                 // Add the bet
                 const bet = {
                     key: betKey,
                     gameId: gameId,
                     team: team,
                     type: type,
-                    odds: odds,
+                    odds: finalOdds,
                     amount: 3
                 };
                 
                 betSlip.push(bet);
-                document.querySelector(`[data-bet="${betKey}"]`).classList.add('selected');
+                betElement.classList.add('selected');
             }
             
             updateBetSlip();
@@ -988,6 +1062,191 @@
                     // Can't have both over and under
                     if (newType === 'total' && bet.type === 'total') {
                         toRemove.push(index);
+                    }
+                }
+            });
+            
+            toRemove.reverse().forEach(index => {
+                const removedBet = betSlip[index];
+                const removedElement = document.querySelector(`[data-bet="${removedBet.key}"]`);
+                if (removedElement) {
+                    removedElement.classList.remove('selected');
+                }
+                betSlip.splice(index, 1);
+            });
+        }
+        
+        function removeBet(index) {
+            if (index >= 0 && index < betSlip.length) {
+                const bet = betSlip[index];
+                const betElement = document.querySelector(`[data-bet="${bet.key}"]`);
+                if (betElement) {
+                    betElement.classList.remove('selected');
+                }
+                betSlip.splice(index, 1);
+                updateBetSlip();
+                validateBets();
+            }
+        }
+        
+        function updateBetAmount(index, amount) {
+            const numAmount = parseFloat(amount);
+            if (numAmount >= 3 && index >= 0 && index < betSlip.length) {
+                betSlip[index].amount = numAmount;
+                updateBetSlipSummary();
+                validateBets();
+            }
+        }
+        
+        function calculateWinnings(odds, amount) {
+            const numAmount = parseFloat(amount);
+            
+            // Parse odds
+            if (odds.includes('(') && odds.includes(')')) {
+                const oddsMatch = odds.match(/\(([+-]\d+)\)/);
+                if (oddsMatch) {
+                    odds = oddsMatch[1];
+                }
+            }
+            
+            const numOdds = parseInt(odds);
+            
+            if (numOdds > 0) {
+                // Positive odds: (odds/100) * amount
+                return (numOdds / 100) * numAmount;
+            } else {
+                // Negative odds: (100/abs(odds)) * amount
+                return (100 / Math.abs(numOdds)) * numAmount;
+            }
+        }
+        
+        function updateBetSlip() {
+            const betSlipBar = document.getElementById('betSlipBar');
+            const betCountDisplay = document.getElementById('betCountDisplay');
+            const betTotalDisplay = document.getElementById('betTotalDisplay');
+            const betSlipItems = document.getElementById('betSlipItems');
+            
+            // Update bottom bar
+            if (betSlip.length === 0) {
+                betSlipBar.classList.remove('has-bets');
+                betCountDisplay.textContent = 'Bet Slip';
+                betTotalDisplay.textContent = 'Select bets to get started';
+            } else {
+                betSlipBar.classList.add('has-bets');
+                betCountDisplay.textContent = `${betSlip.length} bet${betSlip.length !== 1 ? 's' : ''}`;
+                const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
+                betTotalDisplay.textContent = `${total.toFixed(2)} / $20.00`;
+            }
+            
+            // Update modal content
+            if (betSlip.length === 0) {
+                betSlipItems.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1.5rem;">No bets selected</div>';
+            } else {
+                betSlipItems.innerHTML = betSlip.map((bet, index) => {
+                    const winnings = calculateWinnings(bet.odds, bet.amount);
+                    return `
+                        <div class="bet-item">
+                            <div class="bet-row">
+                                <div class="bet-info">
+                                    <div class="bet-team">${bet.team}</div>
+                                    <div class="bet-details">${bet.type.toUpperCase()} • ${bet.odds}</div>
+                                </div>
+                                <button class="bet-remove" onclick="removeBet(${index})">×</button>
+                            </div>
+                            <div class="bet-amount-row">
+                                <span style="color: #94a3b8; font-size: 0.8rem;">Wager:</span>
+                                <input type="number" 
+                                       class="bet-amount-input" 
+                                       min="3" 
+                                       max="20" 
+                                       step="0.01" 
+                                       value="${bet.amount}"
+                                       onchange="updateBetAmount(${index}, this.value)">
+                                <span class="bet-winnings">Win: ${winnings.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            updateBetSlipSummary();
+        }
+        
+        function updateBetSlipSummary() {
+            const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
+            const remaining = 20 - total;
+            
+            // Update requirements display
+            const gamesReq = document.getElementById('gamesReq');
+            const totalReq = document.getElementById('totalReq');
+            const remainingReq = document.getElementById('remainingReq');
+            
+            // Games requirement
+            if (betSlip.length < 3) {
+                gamesReq.textContent = `${betSlip.length} selected (need ${3 - betSlip.length} more)`;
+                gamesReq.className = 'req-value error';
+            } else if (betSlip.length > 5) {
+                gamesReq.textContent = `${betSlip.length} selected (${betSlip.length - 5} over limit)`;
+                gamesReq.className = 'req-value error';
+            } else {
+                gamesReq.textContent = `${betSlip.length} selected ✓`;
+                gamesReq.className = 'req-value success';
+            }
+            
+            // Total requirement
+            totalReq.textContent = `${total.toFixed(2)}`;
+            if (total === 20) {
+                totalReq.className = 'req-value success';
+            } else {
+                totalReq.className = 'req-value error';
+            }
+            
+            // Remaining requirement
+            remainingReq.textContent = `${remaining.toFixed(2)}`;
+            if (remaining === 0) {
+                remainingReq.className = 'req-value success';
+            } else if (remaining < 0) {
+                remainingReq.className = 'req-value error';
+            } else {
+                remainingReq.className = 'req-value';
+            }
+        }
+        
+        function validateBets() {
+            const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
+            const submitBtn = document.getElementById('submitBtn');
+            const validationMessage = document.getElementById('validationMessage');
+            
+            let isValid = true;
+            let message = '';
+            
+            if (betSlip.length < 3) {
+                isValid = false;
+                message = `Select at least 3 games (currently ${betSlip.length})`;
+            } else if (betSlip.length > 5) {
+                isValid = false;
+                message = `Maximum 5 games allowed (currently ${betSlip.length})`;
+            } else if (total !== 20) {
+                isValid = false;
+                if (total < 20) {
+                    message = `Add ${(20 - total).toFixed(2)} more to reach $20`;
+                } else {
+                    message = `Remove ${(total - 20).toFixed(2)} to reach $20`;
+                }
+            } else if (betSlip.some(bet => (bet.amount || 0) < 3)) {
+                isValid = false;
+                message = 'All bets must be at least $3';
+            }
+            
+            submitBtn.disabled = !isValid;
+            
+            if (message) {
+                validationMessage.textContent = message;
+                validationMessage.classList.remove('hidden');
+            } else {
+                validationMessage.classList.add('hidden');
+            }
+        }(index);
                     }
                 }
             });
