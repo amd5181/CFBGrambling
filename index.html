@@ -849,6 +849,16 @@
         
         function checkAuth() {
             const savedUser = localStorage.getItem('cfb_user');
+            const loginTimestamp = localStorage.getItem('cfb_login_timestamp');
+            const fourHours = 4 * 60 * 60 * 1000;
+            
+            // Check for login timeout
+            if (loginTimestamp && (new Date().getTime() - loginTimestamp > fourHours)) {
+                console.log('Session expired, logging out.');
+                handleLogout();
+                return;
+            }
+
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
                 hideAuthModal();
@@ -862,7 +872,8 @@
         async function loadInitialData() {
             await loadCurrentWeek();
             if (oddsData) {
-                updateGamesDisplay(oddsData.slice(0, 10)); // Display some games if odds are loaded
+                // Now displaying all games instead of just the first 10
+                updateGamesDisplay(oddsData); 
             } else {
                 // Display placeholder if no games are available
                 document.getElementById('gamesContainer').innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No games available for this week.</div>';
@@ -932,6 +943,7 @@
                 if (error) throw error;
                 currentUser = data;
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
+                localStorage.setItem('cfb_login_timestamp', new Date().getTime()); // Set timestamp on successful login
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -966,6 +978,7 @@
                 
                 currentUser = data[0];
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
+                localStorage.setItem('cfb_login_timestamp', new Date().getTime()); // Set timestamp on successful registration
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -981,6 +994,7 @@
         function handleLogout() {
             currentUser = null;
             localStorage.removeItem('cfb_user');
+            localStorage.removeItem('cfb_login_timestamp');
             betSlip = [];
             updateBetSlip();
             clearAllSelections();
@@ -1255,7 +1269,8 @@
                 if (data) {
                     currentWeek = data;
                     oddsData = data.api_data.games;
-                    updateGamesDisplay(oddsData);
+                    // Now displaying all games instead of just the first 10
+                    updateGamesDisplay(oddsData); 
                     console.log('Loaded active week:', currentWeek);
                 } else {
                     currentWeek = null;
@@ -1541,87 +1556,31 @@
             }
         }
         
-        function updateGamesDisplay(games) {
-            const container = document.getElementById('gamesContainer');
-            if (!games || games.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No games available for this week.</div>';
-                return;
-            }
-            
-            container.innerHTML = games.map((game) => {
-                const gameId = game.id;
-                const homeTeam = game.home_team;
-                const awayTeam = game.away_team;
-                const matchup = `${awayTeam} @ ${homeTeam}`;
-                const gameTime = new Date(game.commence_time).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit'
-                });
-                
-                const fanduelBookmaker = game.bookmakers.find(b => b.key === 'fanduel');
-                if (!fanduelBookmaker) return '';
-                
-                const h2h = fanduelBookmaker.markets.find(m => m.key === 'h2h');
-                const spreads = fanduelBookmaker.markets.find(m => m.key === 'spreads');
-                const totals = fanduelBookmaker.markets.find(m => m.key === 'totals');
-                
-                const awayML = h2h?.outcomes?.find(o => o.name === awayTeam)?.price || 'N/A';
-                const homeML = h2h?.outcomes?.find(o => o.name === homeTeam)?.price || 'N/A';
-                
-                const awaySpreadPoint = spreads?.outcomes?.find(o => o.name === awayTeam)?.point;
-                const homeSpreadPoint = spreads?.outcomes?.find(o => o.name === homeTeam)?.point;
-                const awaySpreadOdds = spreads?.outcomes?.find(o => o.name === awayTeam)?.price || 'N/A';
-                const homeSpreadOdds = spreads?.outcomes?.find(o => o.name === homeTeam)?.price || 'N/A';
-                const awaySpreadPointFormatted = awaySpreadPoint !== undefined ? (awaySpreadPoint > 0 ? `+${awaySpreadPoint}` : awaySpreadPoint) : 'N/A';
-                const homeSpreadPointFormatted = homeSpreadPoint !== undefined ? (homeSpreadPoint > 0 ? `+${homeSpreadPoint}` : homeSpreadPoint) : 'N/A';
-                
-                const overTotalPoint = totals?.outcomes?.find(o => o.name === 'Over')?.point;
-                const underTotalPoint = totals?.outcomes?.find(o => o.name === 'Under')?.point;
-                const overTotalOdds = totals?.outcomes?.find(o => o.name === 'Over')?.price || 'N/A';
-                const underTotalOdds = totals?.outcomes?.find(o => o.name === 'Under')?.price || 'N/A';
-                const overPointFormatted = overTotalPoint !== undefined ? `O${overTotalPoint}` : 'N/A';
-                const underPointFormatted = underTotalPoint !== undefined ? `U${underTotalPoint}` : 'N/A';
-
-                return `
-                    <div class="game-card">
-                        <div class="game-header">
-                            <div class="game-matchup">${matchup}</div>
-                            <div class="game-time">${gameTime}</div>
-                        </div>
-                        
-                        <div class="team-row">
-                            <div class="team-name">${awayTeam}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'moneyline', '${awayML}', null, '${matchup}')" data-bet="${gameId}-${awayTeam}-moneyline">${awayML !== 'N/A' && awayML > 0 ? '+' + awayML : awayML}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'spread', '${awaySpreadOdds}', ${awaySpreadPoint !== undefined ? awaySpreadPoint : null}, '${matchup}')" data-bet="${gameId}-${awayTeam}-spread">${awaySpreadPointFormatted}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Over', 'total', '${overTotalOdds}', ${overTotalPoint !== undefined ? overTotalPoint : null}, '${matchup}')" data-bet="${gameId}-Over-total">${overPointFormatted}</div>
-                        </div>
-                        
-                        <div class="team-row">
-                            <div class="team-name">${homeTeam}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'moneyline', '${homeML}', null, '${matchup}')" data-bet="${gameId}-${homeTeam}-moneyline">${homeML !== 'N/A' && homeML > 0 ? '+' + homeML : homeML}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '${homeSpreadOdds}', ${homeSpreadPoint !== undefined ? homeSpreadPoint : null}, '${matchup}')" data-bet="${gameId}-Under-total">${homeSpreadPointFormatted}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '${underTotalOdds}', ${underTotalPoint !== undefined ? underTotalPoint : null}, '${matchup}')" data-bet="${gameId}-Under-total">${underPointFormatted}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
         // Admin Functions
         async function loadOdds() {
             if (!currentUser?.is_admin) {
                 showValidationMessage('You are not authorized to perform this action.');
                 return;
             }
+            
             const weekNumber = prompt('Enter week number (e.g., 1):');
             if (!weekNumber || isNaN(weekNumber) || weekNumber < 1) {
                 alert('Please enter a valid week number.');
                 return;
             }
             
+            const startDateStr = prompt('Enter a start date for the week (YYYY-MM-DD):');
+            if (!startDateStr) {
+                alert('Please enter a start date.');
+                return;
+            }
+
+            const startDate = new Date(startDateStr + 'T00:00:00Z');
+            if (isNaN(startDate.getTime())) {
+                alert('Invalid date format. Please use YYYY-MM-DD.');
+                return;
+            }
+
             const btn = document.getElementById('loadOddsBtn');
             btn.disabled = true;
             btn.textContent = 'Loading Odds...';
@@ -1631,23 +1590,36 @@
                 if (!response.ok) throw new Error('Failed to fetch odds from API');
                 const oddsDataFromApi = await response.json();
                 
+                // Calculate the end date (following Monday)
+                const startDayOfWeek = startDate.getUTCDay(); // Sunday is 0, Monday is 1, etc.
+                const daysUntilMonday = (1 + 7 - startDayOfWeek) % 7;
+                const endDate = new Date(startDate);
+                endDate.setUTCDate(startDate.getUTCDate() + daysUntilMonday);
+                endDate.setUTCHours(23, 59, 59, 999);
+                
+                // Filter games based on the date range
+                const filteredGames = oddsDataFromApi.filter(game => {
+                    const gameTime = new Date(game.commence_time);
+                    return gameTime >= startDate && gameTime <= endDate;
+                });
+                
                 await supabase.from('betting_weeks').update({ is_active: false }).neq('id', 0);
                 
-                const deadline = new Date();
+                const deadline = new Date(startDate);
                 deadline.setDate(deadline.getDate() + ((5 - deadline.getDay() + 7) % 7));
                 deadline.setHours(11, 0, 0, 0);
                 
                 const { data: newWeek, error } = await supabase.from('betting_weeks').insert([{
                     week_number: parseInt(weekNumber),
                     year: new Date().getFullYear(),
-                    api_data: { games: oddsDataFromApi },
+                    api_data: { games: filteredGames }, // Save the filtered games
                     betting_deadline: deadline.toISOString(),
                     is_active: true
                 }]).select();
                 
                 if (error) throw error;
                 currentWeek = newWeek[0];
-                oddsData = oddsDataFromApi;
+                oddsData = filteredGames;
                 updateGamesDisplay(oddsData);
                 
                 alert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`);
