@@ -624,7 +624,7 @@
         <div class="nav-bubble active" onclick="showPage('thisWeek', this)">This Week</div>
         <div class="nav-bubble" onclick="showPage('myBets', this)">My Bets</div>
         <div class="nav-bubble" onclick="showPage('currentWeekBets', this)">Current Week Board</div>
-        <div class="nav-bubble" onclick="showPage('leaderboard', this)">Leaderboard</div>
+        <div class="nav-bubble" onclick="showPage('leaderboard', this)">Season Leaderboard</div>
         <div class="nav-bubble admin hidden" id="adminNav" onclick="showPage('admin', this)">Admin</div>
         <div class="nav-bubble" onclick="showPage('settings', this)">Settings</div>
         <div class="nav-bubble logout-btn" onclick="handleLogout()">Logout</div>
@@ -651,8 +651,8 @@
 
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">This Week's Board</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 11 AM ET)</p>
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week Board</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks - Friday 3PM ET</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
             </div>
@@ -703,7 +703,7 @@
                 <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Admins load odds each week - every Tuesday around 3 PM ET</li>
+                        <li>New odds loaded every Tuesday approximately 3 PM ET</li>
                         <li>Place bets until Friday 11 AM ET deadline</li>
                         <li>Must bet exactly $20 total in fake money</li>
                         <li>Choose 3-5 games minimum</li>
@@ -716,16 +716,17 @@
                         <li>Moneyline OR Spread (not both for same game)</li>
                         <li>Over/Under totals (can combine with moneyline/spread)</li>
                         <li>Edit your bets anytime before Friday deadline</li>
+                        <li>No peeking at others' bets until after deadline</li>
                     </ul>
                 </div>
                 <div style="color: #cbd5e1;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Scoring & Points</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Weekly winner gets 50% of the pot</li>
-                        <li>Second place gets 30% of the pot</li>
-                        <li>20% of the weekly pot goes into the season pot</li>
-                        <li>Weekly wins accumulate throughout the season and tallied on the leaderboard</li>
-                        <li>Top 3 season long finishers will receive following payouts - 70%, 20%, and 10%</li>
+                        <li>Weekly winner gets 50% of the weekly pot</li>
+                        <li>Second place gets 30% of the weekly pot</li>
+                        <li>20% of the weekly pot goes into a season long pot</li>
+                        <li>Winnings accumulate for season leaderboard</li>
+                        <li>Season long winners will be paid out - 70%, 20%, 10%</li>
                     </ul>
                 </div>
             </div>
@@ -1361,7 +1362,7 @@
 
             const deadline = new Date(currentWeek.betting_deadline);
             if (new Date() < deadline) {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the deadline of ${deadline.toLocaleString()}.</div>`;
+                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the weekly deadline.</div>`;
                 return;
             }
 
