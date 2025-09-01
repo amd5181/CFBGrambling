@@ -1088,7 +1088,8 @@
                     if (bet.type === 'moneyline') {
                         description = `${bet.team} Moneyline`;
                     } else if (bet.type === 'spread') {
-                        description = `${bet.team} ${bet.point > 0 ? '+' : ''}${bet.point}`;
+                        const pointFormatted = bet.point > 0 ? `+${bet.point}` : bet.point;
+                        description = `${bet.team} ${pointFormatted}`;
                     } else if (bet.type === 'total') {
                         description = `${bet.team === 'Over' ? 'Over' : 'Under'} ${bet.point}`;
                     }
@@ -1208,6 +1209,7 @@
                     bet_amount: bet.amount,
                     odds: bet.odds,
                     bet_type: bet.type,
+                    point_value: bet.point,
                     last_updated_at: new Date().toISOString()
                 }));
                 
@@ -1218,6 +1220,8 @@
                 successDiv.className = 'success-message';
                 successDiv.textContent = `Successfully submitted your bets for Week ${currentWeek.week_number}!`;
                 document.getElementById('betSlipItems').prepend(successDiv);
+
+                clearAllSelections();
                 
                 setTimeout(() => {
                     closeBetSlip();
@@ -1259,78 +1263,75 @@
         }
         
         async function loadMyBets() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.log('Not logged in, skipping bet loading.');
+                return;
+            }
             const container = document.getElementById('myBetsContainer');
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading your bets...</div>';
 
             try {
                 const { data, error } = await supabase
                     .from('user_bets')
-                    .select('*, betting_weeks(week_number, betting_deadline), games(id, home_team, away_team)')
+                    .select('*, betting_weeks(week_number, betting_deadline)')
                     .eq('user_pin', currentUser.pin)
                     .order('week_id', { ascending: false });
+                
                 if (error) throw error;
-
-                if (data.length === 0) {
+                
+                if (!data || data.length === 0) {
                     container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">You have not placed any bets yet.</div>';
                     return;
                 }
                 
-                // Fetch point values for totals bets
-                const totalBets = data.filter(bet => bet.bet_type === 'total');
-                const uniqueGameIds = [...new Set(totalBets.map(bet => bet.game_id))];
-                let pointsData = {};
-
-                if (uniqueGameIds.length > 0) {
-                    const gamesWithPoints = await Promise.all(
-                        uniqueGameIds.map(async gameId => {
-                            const oddsResponse = await supabase
-                                .from('betting_weeks')
-                                .select('api_data')
-                                .eq('id', currentWeek.id)
-                                .single();
-                            if (oddsResponse.error) throw oddsResponse.error;
-                            const gameData = oddsResponse.data.api_data.games.find(g => g.id === gameId);
-                            const totalMarket = gameData?.bookmakers.find(b => b.key === 'fanduel')?.markets.find(m => m.key === 'totals');
-                            if (totalMarket) {
-                                pointsData[gameId] = {
-                                    over: totalMarket.outcomes.find(o => o.name === 'Over')?.point,
-                                    under: totalMarket.outcomes.find(o => o.name === 'Under')?.point,
-                                };
-                            }
-                        })
-                    );
-                }
-
-                container.innerHTML = data.map(bet => {
-                    const potentialPayout = calculatePayout(bet.odds, bet.bet_amount);
-                    const isCurrentWeek = currentWeek && bet.week_id === currentWeek.id;
-                    const homeTeam = bet.games?.home_team || 'Unknown';
-                    const awayTeam = bet.games?.away_team || 'Unknown';
-                    const matchup = `${awayTeam} @ ${homeTeam}`;
-
-                    let betDetails = '';
-                    if (bet.bet_type === 'moneyline') {
-                        betDetails = `${bet.team_picked} Moneyline`;
-                    } else if (bet.bet_type === 'spread') {
-                        betDetails = `${bet.team_picked} Spread`;
-                    } else if (bet.bet_type === 'total') {
-                        const point = bet.team_picked === 'Over' ? pointsData[bet.game_id]?.over : pointsData[bet.game_id]?.under;
-                        betDetails = `${bet.team_picked} ${point}`;
+                // Group bets by week_id
+                const groupedBets = data.reduce((acc, bet) => {
+                    const weekId = bet.week_id;
+                    if (!acc[weekId]) {
+                        acc[weekId] = {
+                            week_number: bet.betting_weeks.week_number,
+                            deadline: new Date(bet.betting_weeks.betting_deadline),
+                            bets: []
+                        };
                     }
+                    acc[weekId].bets.push(bet);
+                    return acc;
+                }, {});
+
+                container.innerHTML = Object.values(groupedBets).map(week => {
+                    const isCurrentWeek = currentWeek && week.bets[0].week_id === currentWeek.id;
+                    const isEditable = isCurrentWeek && new Date() < week.deadline;
                     
                     return `
-                        <div class="bet-card">
-                            <div class="bet-info">
-                                <span class="bet-details">${betDetails}</span>
-                                <span class="bet-odds">${bet.odds > 0 ? '+' : ''}${bet.odds}</span>
+                        <div class="game-card" style="margin-bottom: 2rem;">
+                            <div class="game-header">
+                                <div class="game-matchup"><strong>Week ${week.week_number} Bets</strong></div>
+                                ${isEditable ? `<div class="game-time" style="color:#6ee7b7;">Active: ${week.deadline.toLocaleDateString()} at ${week.deadline.toLocaleTimeString()}</div>` : `<div class="game-time">Locked in: ${week.deadline.toLocaleDateString()}</div>`}
                             </div>
-                            <div class="bet-amounts">
-                                <span>Wager: $${bet.bet_amount.toFixed(2)}</span>
-                                <span>Potential Payout: $${potentialPayout.toFixed(2)}</span>
+                            <div style="padding: 1rem;">
+                                ${week.bets.map(bet => {
+                                    const potentialPayout = calculatePayout(bet.odds, bet.bet_amount);
+                                    let betDetails = '';
+                                    if (bet.bet_type === 'moneyline') {
+                                        betDetails = `${bet.team_picked} Moneyline (${bet.odds})`;
+                                    } else if (bet.bet_type === 'spread') {
+                                        const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
+                                        betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
+                                    } else if (bet.bet_type === 'total') {
+                                        betDetails = `${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                                    }
+                                    
+                                    return `
+                                        <div class="bet-item">
+                                            <div class="bet-item-left">
+                                                <div class="bet-description">${betDetails}</div>
+                                                <div class="bet-payout-calc">Wager: $${bet.bet_amount.toFixed(2)} | Payout: $${potentialPayout.toFixed(2)}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                                ${isEditable ? `<button class="edit-btn" onclick="editMyCurrentBets()">Edit Bets</button>` : ''}
                             </div>
-                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">${matchup}</div>
-                            ${isCurrentWeek && new Date(bet.betting_weeks.betting_deadline) > new Date() ? `<button class="edit-btn" onclick="editMyCurrentBets()">Edit Bets</button>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -1386,16 +1387,26 @@
                             <div class="game-matchup"><strong>${user.name}'s Bets</strong></div>
                             <div class="game-time">Last updated: ${user.last_updated_at.toLocaleDateString()} at ${user.last_updated_at.toLocaleTimeString()}</div>
                         </div>
-                        ${user.bets.map(bet => `
-                            <div class="bet-item">
-                                <div class="bet-item-header" style="margin-bottom: 0;">
-                                    <div class="bet-team">${bet.team_picked}</div>
-                                    <div class="bet-type">${bet.bet_type.toUpperCase()}</div>
+                        ${user.bets.map(bet => {
+                             let betDetails = '';
+                             if (bet.bet_type === 'moneyline') {
+                                 betDetails = `${bet.team_picked} Moneyline (${bet.odds})`;
+                             } else if (bet.bet_type === 'spread') {
+                                 const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
+                                 betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
+                             } else if (bet.bet_type === 'total') {
+                                 betDetails = `${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                             }
+
+                             return `
+                                <div class="bet-item">
+                                    <div class="bet-item-left">
+                                        <div class="bet-description">${betDetails}</div>
+                                        <div class="bet-payout-calc">Wager: $${bet.bet_amount.toFixed(2)}</div>
+                                    </div>
                                 </div>
-                                <div class="bet-odds">${bet.odds}</div>
-                                <div style="color: #cbd5e1; font-weight: 600;">Wager: $${bet.bet_amount.toFixed(2)}</div>
-                            </div>
-                        `).join('')}
+                             `;
+                        }).join('')}
                     </div>
                 `).join('');
             } catch (err) {
@@ -1409,7 +1420,7 @@
             try {
                 const { data, error } = await supabase
                     .from('user_bets')
-                    .select('*, games(home_team, away_team)')
+                    .select('*')
                     .eq('user_pin', currentUser.pin)
                     .eq('week_id', currentWeek.id);
                 if (error) throw error;
@@ -1417,30 +1428,9 @@
                 if (data.length > 0) {
                     clearAllSelections();
                     data.forEach(bet => {
-                        const gameData = oddsData.find(g => g.id === bet.game_id);
-                        if (!gameData) {
-                            console.warn(`Could not find odds data for game ID: ${bet.game_id}`);
-                            return;
-                        }
-
-                        const homeTeam = gameData.home_team;
-                        const awayTeam = gameData.away_team;
-                        const matchup = `${awayTeam} @ ${homeTeam}`;
-                        
                         const betKey = `${bet.game_id}-${bet.team_picked}-${bet.bet_type}`;
                         const matchingOption = document.querySelector(`[data-bet="${betKey}"]`);
                         
-                        let point = null;
-                        if (bet.bet_type === 'spread') {
-                             const spreadMarket = gameData.bookmakers.find(b => b.key === 'fanduel')?.markets.find(m => m.key === 'spreads');
-                             const outcome = spreadMarket?.outcomes.find(o => o.name === bet.team_picked);
-                             point = outcome?.point;
-                        } else if (bet.bet_type === 'total') {
-                            const totalMarket = gameData.bookmakers.find(b => b.key === 'fanduel')?.markets.find(m => m.key === 'totals');
-                            const outcome = totalMarket?.outcomes.find(o => o.name === bet.team_picked);
-                            point = outcome?.point;
-                        }
-
                         if (matchingOption) {
                             betSlip.push({
                                 key: betKey,
@@ -1448,8 +1438,8 @@
                                 team: bet.team_picked,
                                 type: bet.bet_type,
                                 odds: bet.odds,
-                                point: point,
-                                matchup: matchup,
+                                point: bet.point_value,
+                                matchup: oddsData?.find(g => g.id === bet.game_id)?.title || 'Unknown Matchup',
                                 amount: bet.bet_amount
                             });
                             matchingOption.classList.add('selected');
@@ -1550,15 +1540,15 @@
                         <div class="team-row">
                             <div class="team-name">${awayTeam}</div>
                             <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'moneyline', '${awayML?.price}', null, '${matchup}')" data-bet="${gameId}-${awayTeam}-moneyline">${awayML?.price > 0 ? '+' + awayML?.price : awayML?.price}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'spread', '${awaySpread?.price}', ${awaySpread?.point}, '${matchup}')" data-bet="${gameId}-${awayTeam}-spread">${awaySpreadPoint || 'N/A'}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Over', 'total', '${overTotal?.price}', ${overTotal?.point}, '${matchup}')" data-bet="${gameId}-Over-total">O${overPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'spread', '-110', ${awaySpread?.point}, '${matchup}')" data-bet="${gameId}-${awayTeam}-spread">${awaySpreadPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Over', 'total', '-110', ${overTotal?.point}, '${matchup}')" data-bet="${gameId}-Over-total">O${overPoint || 'N/A'}</div>
                         </div>
                         
                         <div class="team-row">
                             <div class="team-name">${homeTeam}</div>
                             <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'moneyline', '${homeML?.price}', null, '${matchup}')" data-bet="${gameId}-${homeTeam}-moneyline">${homeML?.price > 0 ? '+' + homeML?.price : homeML?.price}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '${homeSpread?.price}', ${homeSpread?.point}, '${matchup}')" data-bet="${gameId}-${homeTeam}-spread">${homeSpreadPoint || 'N/A'}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '${underTotal?.price}', ${underTotal?.point}, '${matchup}')" data-bet="${gameId}-Under-total">U${underPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '-110', ${homeSpread?.point}, '${matchup}')" data-bet="${gameId}-${homeTeam}-spread">${homeSpreadPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '-110', ${underTotal?.point}, '${matchup}')" data-bet="${gameId}-Under-total">U${underPoint || 'N/A'}</div>
                         </div>
                     </div>
                 `;
