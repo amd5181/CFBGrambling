@@ -1051,10 +1051,14 @@
                 
                 betSlipItems.innerHTML = betSlip.map(bet => {
                     const potentialPayout = calculatePayout(bet.odds, bet.amount);
-                    const isTotalBet = bet.type === 'total';
-                    const description = isTotalBet ? 
-                        `${bet.matchup.split(' @ ').join('/')} ${bet.team} ${bet.point}` : 
-                        `${bet.team} ${bet.odds > 0 ? '+' : ''}${bet.odds}`;
+                    let description;
+                    if (bet.type === 'moneyline') {
+                        description = `${bet.team} Moneyline`;
+                    } else if (bet.type === 'spread') {
+                        description = `${bet.team} ${bet.point > 0 ? '+' : ''}${bet.point}`;
+                    } else if (bet.type === 'total') {
+                        description = `${bet.team === 'Over' ? 'Over' : 'Under'} ${bet.point}`;
+                    }
                     const payoutText = `Potential Payout: $${potentialPayout.toFixed(2)}`;
 
                     return `
@@ -1160,6 +1164,7 @@
             submitBtn.textContent = 'Submitting...';
             
             try {
+                // Delete existing bets for the current week and user
                 await supabase.from('user_bets').delete().eq('user_pin', currentUser.pin).eq('week_id', currentWeek.id);
                 
                 const betsToInsert = betSlip.map(bet => ({
@@ -1169,7 +1174,8 @@
                     team_picked: bet.team,
                     bet_amount: bet.amount,
                     odds: bet.odds,
-                    bet_type: bet.type
+                    bet_type: bet.type, // Now that the column exists, we can add it back
+                    last_updated_at: new Date().toISOString()
                 }));
                 
                 const { error } = await supabase.from('user_bets').insert(betsToInsert);
@@ -1292,8 +1298,12 @@
 
                 // Group bets by user
                 const groupedBets = data.reduce((acc, bet) => {
-                    const user = acc[bet.user_pin] || { name: bet.users.name, bets: [] };
+                    const user = acc[bet.user_pin] || { name: bet.users.name, bets: [], last_updated_at: new Date(0) };
                     user.bets.push(bet);
+                    const currentBetTime = new Date(bet.last_updated_at);
+                    if (currentBetTime > user.last_updated_at) {
+                        user.last_updated_at = currentBetTime;
+                    }
                     acc[bet.user_pin] = user;
                     return acc;
                 }, {});
@@ -1302,6 +1312,7 @@
                     <div class="game-card">
                         <div class="game-header">
                             <div class="game-matchup"><strong>${user.name}'s Bets</strong></div>
+                            <div class="game-time">Last updated: ${user.last_updated_at.toLocaleDateString()} at ${user.last_updated_at.toLocaleTimeString()}</div>
                         </div>
                         ${user.bets.map(bet => `
                             <div class="bet-item">
