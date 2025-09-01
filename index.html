@@ -12,35 +12,6 @@
             box-sizing: border-box;
         }
         
-        function handleLogout() {
-            currentUser = null;
-            localStorage.removeItem('cfb_user');
-            betSlip = [];
-            updateBetSlip();
-            clearAllSelections();
-            document.getElementById('adminNav').classList.add('hidden');
-            showAuthModal();
-        }
-        
-        // Navigation
-        function showPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // Remove active from nav bubbles
-            document.querySelectorAll('.nav-bubble').forEach(bubble => {
-                bubble.classList.remove('active');
-            });
-            
-            // Show selected page
-            document.getElementById(pageId).classList.add('active');
-            
-            // Activate nav bubble
-            event.target.classList.add('active');
-        }
-        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0f1c;
@@ -426,16 +397,6 @@
             margin-top: 0.5rem;
         }
         
-        .success-message {
-            background: rgba(34, 197, 94, 0.2);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #6ee7b7;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            text-align: center;
-            margin: 1rem 0;
-        }
-        
         /* Auth Modal */
         .auth-modal {
             position: fixed;
@@ -520,11 +481,17 @@
             background: rgba(71, 85, 105, 0.4);
             color: #94a3b8;
             cursor: not-allowed;
+            transform: none;
         }
         
         .btn-secondary {
             background: rgba(71, 85, 105, 0.4);
             border: 1px solid rgba(100, 116, 139, 0.4);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(71, 85, 105, 0.6);
+            transform: translateY(-1px);
         }
         
         .error {
@@ -537,22 +504,20 @@
             font-size: 0.9rem;
         }
         
-        .admin-notice {
-            background: rgba(245, 158, 11, 0.2);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            color: #fbbf24;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            text-align: center;
-        }
-        
         .hidden {
             display: none;
         }
 
-        /* Responsive */
+        .success-message {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #6ee7b7;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
         @media (max-width: 768px) {
             .nav-bubbles {
                 gap: 0.5rem;
@@ -609,144 +574,7 @@
                     
                     <div class="team-row">
                         <div class="team-name">Georgia</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Georgia', 'moneyline', '-150')" data-bet="game1-georgia-ml">-150</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Georgia', 'spread', '-3.5 (-110)')" data-bet="game1-georgia-spread">-3.5</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Over', 'total', 'O52.5 (-110)')" data-bet="game1-over">O52.5</div>
-                    </div>
-                    
-                    <div class="team-row">
-                        <div class="team-name">Alabama</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Alabama', 'moneyline', '+130')" data-bet="game1-alabama-ml">+130</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Alabama', 'spread', '+3.5 (-110)')" data-bet="game1-alabama-spread">+3.5</div>
-                        <div class="bet-option" onclick="selectBet('game1', 'Under', 'total', 'U52.5 (-110)')" data-bet="game1-under">U52.5</div>
-                    </div>
-                </div>
-
-                <div class="game-card">
-                    <div class="game-header">
-                        <div class="game-matchup">Texas @ Michigan</div>
-                        <div class="game-time">Saturday, Sep 7 • 7:30 PM ET</div>
-                    </div>
-                    
-                    <div class="team-row">
-                        <div class="team-name">Texas</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Texas', 'moneyline', '-120')" data-bet="game2-texas-ml">-120</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Texas', 'spread', '-2.5 (-110)')" data-bet="game2-texas-spread">-2.5</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Over', 'total', 'O45.5 (-110)')" data-bet="game2-over">O45.5</div>
-                    </div>
-                    
-                    <div class="team-row">
-                        <div class="team-name">Michigan</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Michigan', 'moneyline', '+100')" data-bet="game2-michigan-ml">+100</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Michigan', 'spread', '+2.5 (-110)')" data-bet="game2-michigan-spread">+2.5</div>
-                        <div class="bet-option" onclick="selectBet('game2', 'Under', 'total', 'U45.5 (-110)')" data-bet="game2-under">U45.5</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- My Bets Page -->
-        <div id="myBets" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">My Betting History</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">View all your bets and edit current week selections</p>
-            <div style="text-align: center; color: #64748b; padding: 2rem;">
-                Coming Soon - Your betting history will appear here
-            </div>
-        </div>
-
-        <!-- Current Week's Bets Page -->
-        <div id="currentWeekBets" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">This Week's Bets</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 11 AM ET)</p>
-            <div style="text-align: center; color: #64748b; padding: 2rem;">
-                Bets will be revealed after the betting deadline
-            </div>
-        </div>
-
-        <!-- Leaderboard Page -->
-        <div id="leaderboard" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Season Leaderboard</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">Current standings and point totals</p>
-            <div style="text-align: center; color: #64748b; padding: 2rem;">
-                Leaderboard will appear here once points are awarded
-            </div>
-        </div>
-
-        <!-- Admin Page -->
-        <div id="admin" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Admin Panel</h2>
-            
-            <div style="display: grid; gap: 2rem; margin-top: 2rem;">
-                <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
-                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Load Weekly Odds</h3>
-                    <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">Pull fresh betting lines from the API</p>
-                    <button class="btn" onclick="loadOdds()" id="loadOddsBtn">Load Odds</button>
-                </div>
-                
-                <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
-                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Award Points</h3>
-                    <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">Add or subtract points for weekly winners</p>
-                    <div style="text-align: center; color: #64748b; padding: 1rem;">
-                        Points system coming soon
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Settings Page -->
-        <div id="settings" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Game Rules</h2>
-            
-            <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4); line-height: 1.6;">
-                <h3 style="color: #e2e8f0; margin-bottom: 1rem;">How CFB Grambling Works</h3>
-                
-                <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
-                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
-                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>New odds loaded every Tuesday at 3 PM ET</li>
-                        <li>Place bets until Friday 11 AM ET deadline</li>
-                        <li>Must bet exactly $20 total in fake money</li>
-                        <li>Choose 3-5 games minimum</li>
-                        <li>Minimum $3 per individual bet</li>
-                    </ul>
-                </div>
-                
-                <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
-                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Betting Options</h4>
-                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Moneyline OR Spread (not both for same game)</li>
-                        <li>Over/Under totals (can combine with moneyline/spread)</li>
-                        <li>Edit your bets anytime before Friday deadline</li>
-                        <li>No peeking at others' bets until after deadline</li>
-                    </ul>
-                </div>
-                
-                <div style="color: #cbd5e1;">
-                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Scoring & Points</h4>
-                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Weekly winner gets 3 points</li>
-                        <li>Second place gets 2 points</li>
-                        <li>Third place gets 1 point</li>
-                        <li>Points accumulate for season leaderboard</li>
-                        <li>Admins award points based on weekly winnings</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Bet Slip Bar -->
-    <div class="bet-slip-bar" id="betSlipBar" onclick="openBetSlip()">
-        <div class="bet-slip-summary">
-            <div class="bet-count" id="betCountDisplay">Bet Slip</div>
-            <div class="bet-total" id="betTotalDisplay">Select bets to get started</div>
-        </div>
-    </div>
-
-    <!-- Bet Slip Modal -->
-    <div class="bet-slip-modal" id="betSlipModal">
-        <div class="bet-slip-content">
-            <div class="bet-slip-header">
+                        <div class="bet-slip-header">
                 <div class="bet-slip-title">Bet Slip</div>
                 <button class="close-bet-slip" onclick="closeBetSlip()">×</button>
             </div>
@@ -1010,48 +838,38 @@
         
         // Navigation
         function showPage(pageId) {
-            // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
             
-            // Remove active from nav bubbles
             document.querySelectorAll('.nav-bubble').forEach(bubble => {
                 bubble.classList.remove('active');
             });
             
-            // Show selected page
             document.getElementById(pageId).classList.add('active');
-            
-            // Activate nav bubble
             event.target.classList.add('active');
         }
         
-        // Betting Logic
+        // Betting Functions
         function selectBet(gameId, team, type, odds) {
             const betKey = `${gameId}-${team.toLowerCase().replace(/\s+/g, '')}-${type}`;
             const betElement = document.querySelector(`[data-bet="${betKey}"]`);
             
             if (!betElement) return;
             
-            // Check if already selected
             const existingBetIndex = betSlip.findIndex(bet => bet.key === betKey);
             
             if (existingBetIndex >= 0) {
-                // Remove the bet
                 betSlip.splice(existingBetIndex, 1);
                 betElement.classList.remove('selected');
             } else {
-                // Check bet limits
                 if (betSlip.length >= 5) {
                     showValidationMessage('Maximum 5 bets allowed');
                     return;
                 }
                 
-                // Remove conflicting bets for this game
                 removeConflictingBets(gameId, type);
                 
-                // Override over/under odds to -110
                 let finalOdds = odds;
                 if (type === 'total') {
                     if (odds.includes('O') || odds.includes('U')) {
@@ -1060,7 +878,6 @@
                     }
                 }
                 
-                // Add the bet
                 const bet = {
                     key: betKey,
                     gameId: gameId,
@@ -1083,13 +900,9 @@
             
             betSlip.forEach((bet, index) => {
                 if (bet.gameId === gameId) {
-                    // Can't have both moneyline and spread
                     if ((newType === 'moneyline' && bet.type === 'spread') ||
-                        (newType === 'spread' && bet.type === 'moneyline')) {
-                        toRemove.push(index);
-                    }
-                    // Can't have both over and under
-                    if (newType === 'total' && bet.type === 'total') {
+                        (newType === 'spread' && bet.type === 'moneyline') ||
+                        (newType === 'total' && bet.type === 'total')) {
                         toRemove.push(index);
                     }
                 }
@@ -1130,7 +943,6 @@
         function calculateWinnings(odds, amount) {
             const numAmount = parseFloat(amount);
             
-            // Parse odds
             if (odds.includes('(') && odds.includes(')')) {
                 const oddsMatch = odds.match(/\(([+-]\d+)\)/);
                 if (oddsMatch) {
@@ -1141,10 +953,8 @@
             const numOdds = parseInt(odds);
             
             if (numOdds > 0) {
-                // Positive odds: (odds/100) * amount
                 return (numOdds / 100) * numAmount;
             } else {
-                // Negative odds: (100/abs(odds)) * amount
                 return (100 / Math.abs(numOdds)) * numAmount;
             }
         }
@@ -1155,22 +965,17 @@
             const betTotalDisplay = document.getElementById('betTotalDisplay');
             const betSlipItems = document.getElementById('betSlipItems');
             
-            // Update bottom bar
             if (betSlip.length === 0) {
                 betSlipBar.classList.remove('has-bets');
                 betCountDisplay.textContent = 'Bet Slip';
                 betTotalDisplay.textContent = 'Select bets to get started';
+                betSlipItems.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1.5rem;">No bets selected</div>';
             } else {
                 betSlipBar.classList.add('has-bets');
                 betCountDisplay.textContent = `${betSlip.length} bet${betSlip.length !== 1 ? 's' : ''}`;
                 const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
                 betTotalDisplay.textContent = `${total.toFixed(2)} / $20.00`;
-            }
-            
-            // Update modal content
-            if (betSlip.length === 0) {
-                betSlipItems.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1.5rem;">No bets selected</div>';
-            } else {
+                
                 betSlipItems.innerHTML = betSlip.map((bet, index) => {
                     const winnings = calculateWinnings(bet.odds, bet.amount);
                     return `
@@ -1205,12 +1010,10 @@
             const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
             const remaining = 20 - total;
             
-            // Update requirements display
             const gamesReq = document.getElementById('gamesReq');
             const totalReq = document.getElementById('totalReq');
             const remainingReq = document.getElementById('remainingReq');
             
-            // Games requirement
             if (betSlip.length < 3) {
                 gamesReq.textContent = `${betSlip.length} selected (need ${3 - betSlip.length} more)`;
                 gamesReq.className = 'req-value error';
@@ -1222,15 +1025,9 @@
                 gamesReq.className = 'req-value success';
             }
             
-            // Total requirement
             totalReq.textContent = `${total.toFixed(2)}`;
-            if (total === 20) {
-                totalReq.className = 'req-value success';
-            } else {
-                totalReq.className = 'req-value error';
-            }
+            totalReq.className = total === 20 ? 'req-value success' : 'req-value error';
             
-            // Remaining requirement
             remainingReq.textContent = `${remaining.toFixed(2)}`;
             if (remaining === 0) {
                 remainingReq.className = 'req-value success';
@@ -1257,124 +1054,7 @@
                 message = `Maximum 5 games allowed (currently ${betSlip.length})`;
             } else if (total !== 20) {
                 isValid = false;
-                if (total < 20) {
-                    message = `Add ${(20 - total).toFixed(2)} more to reach $20`;
-                } else {
-                    message = `Remove ${(total - 20).toFixed(2)} to reach $20`;
-                }
-            } else if (betSlip.some(bet => (bet.amount || 0) < 3)) {
-                isValid = false;
-                message = 'All bets must be at least $3';
-            }
-            
-            submitBtn.disabled = !isValid;
-            
-            if (message) {
-                validationMessage.textContent = message;
-                validationMessage.classList.remove('hidden');
-            } else {
-                validationMessage.classList.add('hidden');
-            }
-        }(index);
-                    }
-                }
-            });
-            
-            toRemove.reverse().forEach(index => {
-                const removedBet = betSlip[index];
-                document.querySelector(`[data-bet="${removedBet.key}"]`).classList.remove('selected');
-                betSlip.splice(index, 1);
-            });
-        }
-        
-        function removeBet(index) {
-            const bet = betSlip[index];
-            document.querySelector(`[data-bet="${bet.key}"]`).classList.remove('selected');
-            betSlip.splice(index, 1);
-            updateBetSlip();
-            validateBets();
-        }
-        
-        function updateBetAmount(index, amount) {
-            if (amount >= 3) {
-                betSlip[index].amount = parseFloat(amount);
-                updateBetSlipSummary();
-                validateBets();
-            }
-        }
-        
-        function updateBetSlip() {
-            const betSlipBar = document.getElementById('betSlipBar');
-            const betCountDisplay = document.getElementById('betCountDisplay');
-            const betTotalDisplay = document.getElementById('betTotalDisplay');
-            const betSlipItems = document.getElementById('betSlipItems');
-            
-            // Update bottom bar
-            if (betSlip.length === 0) {
-                betSlipBar.classList.remove('has-bets');
-                betCountDisplay.textContent = 'Bet Slip';
-                betTotalDisplay.textContent = 'Select bets to get started';
-            } else {
-                betSlipBar.classList.add('has-bets');
-                betCountDisplay.textContent = `${betSlip.length} bet${betSlip.length !== 1 ? 's' : ''}`;
-                const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
-                betTotalDisplay.textContent = `${total.toFixed(2)} / $20.00`;
-            }
-            
-            // Update modal content
-            if (betSlip.length === 0) {
-                betSlipItems.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">No bets selected</div>';
-            } else {
-                betSlipItems.innerHTML = betSlip.map((bet, index) => `
-                    <div class="bet-item">
-                        <div class="bet-item-header">
-                            <div class="bet-team">${bet.team}</div>
-                            <div class="bet-type">${bet.type.toUpperCase()}</div>
-                            <button class="remove-bet" onclick="removeBet(${index})">Remove</button>
-                        </div>
-                        <div class="bet-odds">${bet.odds}</div>
-                        <input type="number" 
-                               class="bet-amount-input" 
-                               min="3" 
-                               max="20" 
-                               step="0.01" 
-                               value="${bet.amount}"
-                               onchange="updateBetAmount(${index}, this.value)"
-                               placeholder="Bet amount">
-                    </div>
-                `).join('');
-            }
-            
-            updateBetSlipSummary();
-        }
-        
-        function updateBetSlipSummary() {
-            const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
-            const remaining = 20 - total;
-            
-            document.getElementById('betCountSummary').textContent = `${betSlip.length}/5`;
-            document.getElementById('totalWagered').textContent = `${total.toFixed(2)}`;
-            document.getElementById('remainingAmount').textContent = `${remaining.toFixed(2)}`;
-        }
-        
-        function validateBets() {
-            const total = betSlip.reduce((sum, bet) => sum + (bet.amount || 0), 0);
-            const submitBtn = document.getElementById('submitBtn');
-            const validationMessage = document.getElementById('validationMessage');
-            
-            let isValid = true;
-            let message = '';
-            
-            if (betSlip.length < 3) {
-                isValid = false;
-                message = 'Select at least 3 games to bet on';
-            } else if (total !== 20) {
-                isValid = false;
-                if (total < 20) {
-                    message = `Add ${(20 - total).toFixed(2)} more to reach $20 total`;
-                } else {
-                    message = `Remove ${(total - 20).toFixed(2)} to reach $20 total`;
-                }
+                message = total < 20 ? `Add ${(20 - total).toFixed(2)} more` : `Remove ${(total - 20).toFixed(2)}`;
             } else if (betSlip.some(bet => (bet.amount || 0) < 3)) {
                 isValid = false;
                 message = 'All bets must be at least $3';
@@ -1405,7 +1085,6 @@
             });
         }
         
-        // Bet Slip Modal
         function openBetSlip() {
             if (betSlip.length > 0) {
                 document.getElementById('betSlipModal').style.display = 'block';
@@ -1416,7 +1095,6 @@
             document.getElementById('betSlipModal').style.display = 'none';
         }
         
-        // Submit Bets
         async function submitBets() {
             if (!currentUser || !supabase) return;
             
@@ -1425,7 +1103,6 @@
             submitBtn.textContent = 'Submitting...';
             
             try {
-                // Get current active week
                 const { data: weekData } = await supabase
                     .from('betting_weeks')
                     .select('id')
@@ -1436,14 +1113,12 @@
                     throw new Error('No active betting week found');
                 }
                 
-                // Delete existing bets for this week
                 await supabase
                     .from('user_bets')
                     .delete()
                     .eq('user_pin', currentUser.pin)
                     .eq('week_id', weekData.id);
                 
-                // Insert new bets
                 const betsToInsert = betSlip.map(bet => ({
                     user_pin: currentUser.pin,
                     week_id: weekData.id,
@@ -1460,13 +1135,11 @@
                 
                 if (error) throw error;
                 
-                // Show success message
                 const successDiv = document.createElement('div');
                 successDiv.className = 'success-message';
-                successDiv.textContent = `Successfully submitted ${betSlip.length} bets totaling $20.00!`;
+                successDiv.textContent = `✅ Successfully submitted ${betSlip.length} bets totaling $20.00!`;
                 document.getElementById('betSlipItems').prepend(successDiv);
                 
-                // Clear bet slip after short delay
                 setTimeout(() => {
                     betSlip = [];
                     clearAllSelections();
@@ -1482,7 +1155,6 @@
             }
         }
         
-        // Admin Functions
         async function loadOdds() {
             if (!currentUser?.is_admin) return;
             
@@ -1497,7 +1169,6 @@
             btn.textContent = 'Loading Odds...';
             
             try {
-                // Fetch odds from API
                 const response = await fetch(
                     `https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds/?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&bookmakers=fanduel,draftkings`
                 );
@@ -1506,16 +1177,14 @@
                 
                 const oddsData = await response.json();
                 
-                // Deactivate previous weeks
                 await supabase
                     .from('betting_weeks')
                     .update({ is_active: false })
-                    .neq('id', 0); // Update all
+                    .neq('id', 0);
                 
-                // Create new betting week
                 const deadline = new Date();
-                deadline.setDate(deadline.getDate() + ((5 - deadline.getDay() + 7) % 7)); // Next Friday
-                deadline.setHours(11, 0, 0, 0); // 11 AM ET
+                deadline.setDate(deadline.getDate() + ((5 - deadline.getDay() + 7) % 7));
+                deadline.setHours(11, 0, 0, 0);
                 
                 const { data: newWeek, error } = await supabase
                     .from('betting_weeks')
@@ -1532,8 +1201,10 @@
                 
                 currentWeek = newWeek[0];
                 
-                // Update UI with new games
-                updateGamesDisplay(oddsData.slice(0, 10)); // Show first 10 games
+                betSlip = [];
+                clearAllSelections();
+                updateGamesDisplay(oddsData.slice(0, 10));
+                updateBetSlip();
                 
                 alert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`);
                 
@@ -1560,7 +1231,6 @@
                     minute: '2-digit'
                 });
                 
-                // Get odds from first bookmaker
                 const bookmaker = game.bookmakers?.[0];
                 if (!bookmaker) return '';
                 
@@ -1588,21 +1258,21 @@
                             <div class="team-name">${awayTeam}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'moneyline', '${awayML > 0 ? '+' + awayML : awayML}')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '')}-moneyline">${awayML > 0 ? '+' + awayML : awayML}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', '${awayTeam}', 'spread', '${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point} (${awaySpread?.price > 0 ? '+' : ''}${awaySpread?.price})')" data-bet="${gameId}-${awayTeam.toLowerCase().replace(/\s+/g, '')}-spread">${awaySpread?.point > 0 ? '+' : ''}${awaySpread?.point}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', 'Over', 'total', 'O${overTotal?.point} (${overTotal?.price > 0 ? '+' : ''}${overTotal?.price})')" data-bet="${gameId}-over">O${overTotal?.point}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', 'Over', 'total', 'O${overTotal?.point} (-110)')" data-bet="${gameId}-over">O${overTotal?.point}</div>
                         </div>
                         
                         <div class="team-row">
                             <div class="team-name">${homeTeam}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'moneyline', '${homeML > 0 ? '+' + homeML : homeML}')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '')}-moneyline">${homeML > 0 ? '+' + homeML : homeML}</div>
                             <div class="bet-option" onclick="selectBet('${gameId}', '${homeTeam}', 'spread', '${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point} (${homeSpread?.price > 0 ? '+' : ''}${homeSpread?.price})')" data-bet="${gameId}-${homeTeam.toLowerCase().replace(/\s+/g, '')}-spread">${homeSpread?.point > 0 ? '+' : ''}${homeSpread?.point}</div>
-                            <div class="bet-option" onclick="selectBet('${gameId}', 'Under', 'total', 'U${underTotal?.point} (${underTotal?.price > 0 ? '+' : ''}${underTotal?.price})')" data-bet="${gameId}-under">U${underTotal?.point}</div>
+                            <div class="bet-option" onclick="selectBet('${gameId}', 'Under', 'total', 'U${underTotal?.point} (-110)')" data-bet="${gameId}-under">U${underTotal?.point}</div>
                         </div>
                     </div>
                 `;
             }).join('');
         }
         
-        // Initialize bet slip display
+        // Initialize
         updateBetSlip();
         
         // Close modal when clicking outside
@@ -1614,4 +1284,162 @@
         }
     </script>
 </body>
-</html>
+</html>option" onclick="selectBet('game1', 'Georgia', 'moneyline', '-150')" data-bet="game1-georgia-moneyline">-150</div>
+                        <div class="bet-option" onclick="selectBet('game1', 'Georgia', 'spread', '-3.5 (-110)')" data-bet="game1-georgia-spread">-3.5</div>
+                        <div class="bet-option" onclick="selectBet('game1', 'Over', 'total', 'O52.5 (-110)')" data-bet="game1-over">O52.5</div>
+                    </div>
+                    
+                    <div class="team-row">
+                        <div class="team-name">Alabama</div>
+                        <div class="bet-option" onclick="selectBet('game1', 'Alabama', 'moneyline', '+130')" data-bet="game1-alabama-moneyline">+130</div>
+                        <div class="bet-option" onclick="selectBet('game1', 'Alabama', 'spread', '+3.5 (-110)')" data-bet="game1-alabama-spread">+3.5</div>
+                        <div class="bet-option" onclick="selectBet('game1', 'Under', 'total', 'U52.5 (-110)')" data-bet="game1-under">U52.5</div>
+                    </div>
+                </div>
+
+                <div class="game-card">
+                    <div class="game-header">
+                        <div class="game-matchup">Texas @ Michigan</div>
+                        <div class="game-time">Saturday, Sep 7 • 7:30 PM ET</div>
+                    </div>
+                    
+                    <div class="team-row">
+                        <div class="team-name">Texas</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Texas', 'moneyline', '-120')" data-bet="game2-texas-moneyline">-120</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Texas', 'spread', '-2.5 (-110)')" data-bet="game2-texas-spread">-2.5</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Over', 'total', 'O45.5 (-110)')" data-bet="game2-over">O45.5</div>
+                    </div>
+                    
+                    <div class="team-row">
+                        <div class="team-name">Michigan</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Michigan', 'moneyline', '+100')" data-bet="game2-michigan-moneyline">+100</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Michigan', 'spread', '+2.5 (-110)')" data-bet="game2-michigan-spread">+2.5</div>
+                        <div class="bet-option" onclick="selectBet('game2', 'Under', 'total', 'U45.5 (-110)')" data-bet="game2-under">U45.5</div>
+                    </div>
+                </div>
+
+                <div class="game-card">
+                    <div class="game-header">
+                        <div class="game-matchup">Ohio State @ Oregon</div>
+                        <div class="game-time">Saturday, Sep 7 • 8:00 PM ET</div>
+                    </div>
+                    
+                    <div class="team-row">
+                        <div class="team-name">Ohio State</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Ohio State', 'moneyline', '-180')" data-bet="game3-ohiostate-moneyline">-180</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Ohio State', 'spread', '-4.5 (-110)')" data-bet="game3-ohiostate-spread">-4.5</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Over', 'total', 'O58.5 (-110)')" data-bet="game3-over">O58.5</div>
+                    </div>
+                    
+                    <div class="team-row">
+                        <div class="team-name">Oregon</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Oregon', 'moneyline', '+155')" data-bet="game3-oregon-moneyline">+155</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Oregon', 'spread', '+4.5 (-110)')" data-bet="game3-oregon-spread">+4.5</div>
+                        <div class="bet-option" onclick="selectBet('game3', 'Under', 'total', 'U58.5 (-110)')" data-bet="game3-under">U58.5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Bets Page -->
+        <div id="myBets" class="page">
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">My Betting History</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">View all your bets and edit current week selections</p>
+            <div style="text-align: center; color: #64748b; padding: 2rem;">
+                Coming Soon - Your betting history will appear here
+            </div>
+        </div>
+
+        <!-- Current Week's Bets Page -->
+        <div id="currentWeekBets" class="page">
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">This Week's Bets</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 11 AM ET)</p>
+            <div style="text-align: center; color: #64748b; padding: 2rem;">
+                Bets will be revealed after the betting deadline
+            </div>
+        </div>
+
+        <!-- Leaderboard Page -->
+        <div id="leaderboard" class="page">
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Season Leaderboard</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">Current standings and point totals</p>
+            <div style="text-align: center; color: #64748b; padding: 2rem;">
+                Leaderboard will appear here once points are awarded
+            </div>
+        </div>
+
+        <!-- Admin Page -->
+        <div id="admin" class="page">
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Admin Panel</h2>
+            
+            <div style="display: grid; gap: 2rem; margin-top: 2rem;">
+                <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
+                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Load Weekly Odds</h3>
+                    <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">Pull fresh betting lines from the API</p>
+                    <button class="btn" onclick="loadOdds()" id="loadOddsBtn">Load Odds</button>
+                </div>
+                
+                <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
+                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Award Points</h3>
+                    <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">Add or subtract points for weekly winners</p>
+                    <div style="text-align: center; color: #64748b; padding: 1rem;">
+                        Points system coming soon
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings" class="page">
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Game Rules</h2>
+            
+            <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4); line-height: 1.6;">
+                <h3 style="color: #e2e8f0; margin-bottom: 1rem;">How CFB Grambling Works</h3>
+                
+                <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
+                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
+                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
+                        <li>New odds loaded every Tuesday at 3 PM ET</li>
+                        <li>Place bets until Friday 11 AM ET deadline</li>
+                        <li>Must bet exactly $20 total in fake money</li>
+                        <li>Choose 3-5 games minimum</li>
+                        <li>Minimum $3 per individual bet</li>
+                    </ul>
+                </div>
+                
+                <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
+                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Betting Options</h4>
+                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
+                        <li>Moneyline OR Spread (not both for same game)</li>
+                        <li>Over/Under totals (can combine with moneyline/spread)</li>
+                        <li>Edit your bets anytime before Friday deadline</li>
+                        <li>No peeking at others' bets until after deadline</li>
+                    </ul>
+                </div>
+                
+                <div style="color: #cbd5e1;">
+                    <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Scoring & Points</h4>
+                    <ul style="margin-left: 1.5rem; color: #94a3b8;">
+                        <li>Weekly winner gets 3 points</li>
+                        <li>Second place gets 2 points</li>
+                        <li>Third place gets 1 point</li>
+                        <li>Points accumulate for season leaderboard</li>
+                        <li>Admins award points based on weekly winnings</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Bet Slip Bar -->
+    <div class="bet-slip-bar" id="betSlipBar" onclick="openBetSlip()">
+        <div class="bet-slip-summary">
+            <div class="bet-count" id="betCountDisplay">Bet Slip</div>
+            <div class="bet-total" id="betTotalDisplay">Select bets to get started</div>
+        </div>
+    </div>
+
+    <!-- Bet Slip Modal -->
+    <div class="bet-slip-modal" id="betSlipModal">
+        <div class="bet-slip-content">
+            <div class="bet-
