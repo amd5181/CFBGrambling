@@ -1440,7 +1440,7 @@
                                 type: bet.bet_type,
                                 odds: bet.odds,
                                 point: bet.point_value,
-                                matchup: oddsData?.find(g => g.id === bet.game_id)?.title || 'Unknown Matchup',
+                                matchup: bet.teams, // Use the teams field from the database
                                 amount: bet.bet_amount
                             });
                             matchingOption.classList.add('selected');
@@ -1516,21 +1516,23 @@
                 const spreads = fanduelBookmaker.markets.find(m => m.key === 'spreads');
                 const totals = fanduelBookmaker.markets.find(m => m.key === 'totals');
                 
-                const awayML = h2h?.outcomes?.find(o => o.name === awayTeam);
-                const homeML = h2h?.outcomes?.find(o => o.name === homeTeam);
+                const awayML = h2h?.outcomes?.find(o => o.name === awayTeam)?.price || 'N/A';
+                const homeML = h2h?.outcomes?.find(o => o.name === homeTeam)?.price || 'N/A';
                 
-                const awaySpread = spreads?.outcomes?.find(o => o.name === awayTeam);
-                const homeSpread = spreads?.outcomes?.find(o => o.name === homeTeam);
+                const awaySpreadPoint = spreads?.outcomes?.find(o => o.name === awayTeam)?.point;
+                const homeSpreadPoint = spreads?.outcomes?.find(o => o.name === homeTeam)?.point;
+                const awaySpreadOdds = spreads?.outcomes?.find(o => o.name === awayTeam)?.price || 'N/A';
+                const homeSpreadOdds = spreads?.outcomes?.find(o => o.name === homeTeam)?.price || 'N/A';
+                const awaySpreadPointFormatted = awaySpreadPoint !== undefined ? (awaySpreadPoint > 0 ? `+${awaySpreadPoint}` : awaySpreadPoint) : 'N/A';
+                const homeSpreadPointFormatted = homeSpreadPoint !== undefined ? (homeSpreadPoint > 0 ? `+${homeSpreadPoint}` : homeSpreadPoint) : 'N/A';
                 
-                const overTotal = totals?.outcomes?.find(o => o.name === 'Over');
-                const underTotal = totals?.outcomes?.find(o => o.name === 'Under');
-                
-                const awaySpreadPoint = awaySpread?.point > 0 ? `+${awaySpread.point}` : awaySpread?.point;
-                const homeSpreadPoint = homeSpread?.point > 0 ? `+${homeSpread.point}` : homeSpread?.point;
-                
-                const overPoint = overTotal?.point;
-                const underPoint = underTotal?.point;
-                
+                const overTotalPoint = totals?.outcomes?.find(o => o.name === 'Over')?.point;
+                const underTotalPoint = totals?.outcomes?.find(o => o.name === 'Under')?.point;
+                const overTotalOdds = totals?.outcomes?.find(o => o.name === 'Over')?.price || 'N/A';
+                const underTotalOdds = totals?.outcomes?.find(o => o.name === 'Under')?.price || 'N/A';
+                const overPointFormatted = overTotalPoint !== undefined ? `O${overTotalPoint}` : 'N/A';
+                const underPointFormatted = underTotalPoint !== undefined ? `U${underTotalPoint}` : 'N/A';
+
                 return `
                     <div class="game-card">
                         <div class="game-header">
@@ -1540,16 +1542,16 @@
                         
                         <div class="team-row">
                             <div class="team-name">${awayTeam}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'moneyline', '${awayML?.price}', null, '${matchup}')" data-bet="${gameId}-${awayTeam}-moneyline">${awayML?.price > 0 ? '+' + awayML?.price : awayML?.price}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'spread', '-110', ${awaySpread?.point}, '${matchup}')" data-bet="${gameId}-${awayTeam}-spread">${awaySpreadPoint || 'N/A'}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Over', 'total', '-110', ${overTotal?.point}, '${matchup}')" data-bet="${gameId}-Over-total">O${overPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'moneyline', '${awayML}', null, '${matchup}')" data-bet="${gameId}-${awayTeam}-moneyline">${awayML !== 'N/A' && awayML > 0 ? '+' + awayML : awayML}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${awayTeam}', 'spread', '${awaySpreadOdds}', ${awaySpreadPoint !== undefined ? awaySpreadPoint : null}, '${matchup}')" data-bet="${gameId}-${awayTeam}-spread">${awaySpreadPointFormatted}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Over', 'total', '${overTotalOdds}', ${overTotalPoint !== undefined ? overTotalPoint : null}, '${matchup}')" data-bet="${gameId}-Over-total">${overPointFormatted}</div>
                         </div>
                         
                         <div class="team-row">
                             <div class="team-name">${homeTeam}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'moneyline', '${homeML?.price}', null, '${matchup}')" data-bet="${gameId}-${homeTeam}-moneyline">${homeML?.price > 0 ? '+' + homeML?.price : homeML?.price}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '-110', ${homeSpread?.point}, '${matchup}')" data-bet="${gameId}-${homeTeam}-spread">${homeSpreadPoint || 'N/A'}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '-110', ${underTotal?.point}, '${matchup}')" data-bet="${gameId}-Under-total">U${underPoint || 'N/A'}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'moneyline', '${homeML}', null, '${matchup}')" data-bet="${gameId}-${homeTeam}-moneyline">${homeML !== 'N/A' && homeML > 0 ? '+' + homeML : homeML}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '${homeSpreadOdds}', ${homeSpreadPoint !== undefined ? homeSpreadPoint : null}, '${matchup}')" data-bet="${gameId}-${homeTeam}-spread">${homeSpreadPointFormatted}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '${underTotalOdds}', ${underTotalPoint !== undefined ? underTotalPoint : null}, '${matchup}')" data-bet="${gameId}-Under-total">${underPointFormatted}</div>
                         </div>
                     </div>
                 `;
