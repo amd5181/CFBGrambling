@@ -410,7 +410,7 @@
         }
         
         /* Auth Modal */
-        .auth-modal {
+        .auth-modal, .app-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -425,7 +425,7 @@
             overflow: auto;
         }
         
-        .auth-card {
+        .auth-card, .modal-card {
             background: rgba(30, 41, 59, 0.9);
             border: 1px solid rgba(71, 85, 105, 0.5);
             border-radius: 1rem;
@@ -434,6 +434,19 @@
             width: 90%;
             backdrop-filter: blur(20px);
             margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .modal-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-card p {
+            margin-bottom: 1.5rem;
         }
         
         .auth-title {
@@ -445,6 +458,7 @@
         
         .input-group {
             margin-bottom: 1rem;
+            width: 100%;
         }
         
         .label {
@@ -621,6 +635,50 @@
             font-size: 0.85rem;
             color: #94a3b8;
         }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+        
+        .bet-item .bet-outcome {
+            font-weight: bold;
+            text-transform: capitalize;
+            color: #94a3b8;
+        }
+        
+        .bet-item .bet-outcome.win { color: #6ee7b7; }
+        .bet-item .bet-outcome.loss { color: #f87171; }
+        .bet-item .bet-outcome.push { color: #fcd34d; }
+
+        .outcome-btn {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            border: none;
+        }
+
+        .outcome-btn.win { background: #16a34a; color: white; }
+        .outcome-btn.loss { background: #dc2626; color: white; }
+        .outcome-btn.push { background: #d97706; color: white; }
+        .outcome-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .game-dropdown-wrapper {
+            margin-bottom: 1rem;
+        }
+        
+        .game-dropdown-wrapper select {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -657,7 +715,7 @@
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
             <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week Board</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 3 PM ET)</p>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Saturday 11 AM ET)</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
             </div>
@@ -697,6 +755,19 @@
                     </div>
                     <div id="pointsMessage" class="validation-message hidden" style="margin-top: 1rem;"></div>
                 </div>
+                <!-- NEW: Process Game Outcomes Section -->
+                <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
+                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Process Game Outcomes</h3>
+                    <div id="gameOutcomesContainer">
+                        <div style="text-align: center; color: #94a3b8;">No games to process for this week.</div>
+                    </div>
+                </div>
+                <!-- NEW: Calculate Winnings Button -->
+                 <div style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(71, 85, 105, 0.4);">
+                    <h3 style="margin-bottom: 1rem; color: #e2e8f0;">Calculate Weekly Winnings</h3>
+                    <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">Process all bets for the current week and update user points.</p>
+                    <button class="btn" onclick="calculateWeeklyWinnings()" id="calculateWinningsBtn">Calculate Winnings</button>
+                </div>
             </div>
         </div>
 
@@ -709,7 +780,7 @@
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
                         <li>New odds loaded every Tuesday at approximately 3 PM ET</li>
-                        <li>Place bets until Friday 11 AM ET deadline</li>
+                        <li>Place bets until Saturday 11 AM ET deadline</li>
                         <li>Must bet exactly $20 total in fake money</li>
                         <li>Choose 3-5 games minimum</li>
                         <li>Minimum $3 per individual bet</li>
@@ -807,6 +878,15 @@
         </div>
     </div>
 
+    <!-- Custom Alert/Confirmation Modal -->
+    <div id="appModal" class="app-modal hidden">
+        <div class="modal-card">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            <div id="modalButtons" class="modal-buttons"></div>
+        </div>
+    </div>
+
     <script>
         // Supabase setup
         const SUPABASE_URL = 'https://bumxibdfhturlljvqfnn.supabase.co';
@@ -872,14 +952,13 @@
         async function loadInitialData() {
             await loadCurrentWeek();
             if (oddsData) {
-                // Now displaying all games instead of just the first 10
                 updateGamesDisplay(oddsData); 
             } else {
-                // Display placeholder if no games are available
                 document.getElementById('gamesContainer').innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No games available for this week.</div>';
             }
             if (currentUser?.is_admin) {
                 loadUsersForAdmin();
+                loadGamesForOutcomes();
             }
             loadMyBets();
             loadCurrentWeeksBets();
@@ -896,6 +975,51 @@
             }
         }
         
+        // Custom Alert/Confirmation Functions
+        function showAlert(message, title = 'Notification') {
+            const modal = document.getElementById('appModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            const buttonsContainer = document.getElementById('modalButtons');
+            buttonsContainer.innerHTML = '';
+            
+            const okBtn = document.createElement('button');
+            okBtn.textContent = 'OK';
+            okBtn.className = 'btn';
+            okBtn.onclick = () => modal.classList.add('hidden');
+            buttonsContainer.appendChild(okBtn);
+            
+            modal.classList.remove('hidden');
+        }
+
+        function showConfirm(message, title = 'Confirm', onConfirm, onCancel) {
+            const modal = document.getElementById('appModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            const buttonsContainer = document.getElementById('modalButtons');
+            buttonsContainer.innerHTML = '';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Confirm';
+            confirmBtn.className = 'btn';
+            confirmBtn.onclick = () => {
+                modal.classList.add('hidden');
+                onConfirm();
+            };
+            buttonsContainer.appendChild(confirmBtn);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+                if (onCancel) onCancel();
+            };
+            buttonsContainer.appendChild(cancelBtn);
+
+            modal.classList.remove('hidden');
+        }
+
         // Auth Functions
         function showAuthModal() {
             document.getElementById('authModal').style.display = 'flex';
@@ -943,7 +1067,7 @@
                 if (error) throw error;
                 currentUser = data;
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
-                localStorage.setItem('cfb_login_timestamp', new Date().getTime()); // Set timestamp on successful login
+                localStorage.setItem('cfb_login_timestamp', new Date().getTime());
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -978,7 +1102,7 @@
                 
                 currentUser = data[0];
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
-                localStorage.setItem('cfb_login_timestamp', new Date().getTime()); // Set timestamp on successful registration
+                localStorage.setItem('cfb_login_timestamp', new Date().getTime());
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -1017,33 +1141,38 @@
         // Betting Logic
         function selectBet(event, gameId, team, type, odds, point, matchup) {
             event.stopPropagation();
-
             const betKey = `${gameId}-${team}-${type}`;
             const isAlreadySelected = betSlip.some(bet => bet.key === betKey);
             
-            // If the user is un-selecting a bet
             if (isAlreadySelected) {
                 removeBet(betKey);
                 event.currentTarget.classList.remove('selected');
                 return;
             }
 
-            // If the user is selecting a new bet
             if (betSlip.length >= 5) {
                 showValidationMessage('Maximum 5 bets allowed.');
                 return;
             }
             
-            // Handle automatic voiding of conflicting bets
             if (type === 'moneyline' || type === 'spread') {
                 const conflictingBets = betSlip.filter(bet => bet.gameId === gameId && (bet.type === 'moneyline' || bet.type === 'spread'));
                 conflictingBets.forEach(bet => removeBet(bet.key));
+                // Remove selected class for conflicting bets in the UI
+                conflictingBets.forEach(bet => {
+                    const el = document.querySelector(`[data-bet="${bet.key}"]`);
+                    if(el) el.classList.remove('selected');
+                });
             } else if (type === 'total') {
                 const conflictingBets = betSlip.filter(bet => bet.gameId === gameId && bet.type === 'total');
                 conflictingBets.forEach(bet => removeBet(bet.key));
+                // Remove selected class for conflicting bets in the UI
+                conflictingBets.forEach(bet => {
+                    const el = document.querySelector(`[data-bet="${bet.key}"]`);
+                    if(el) el.classList.remove('selected');
+                });
             }
             
-            // Add the new bet to the slip
             const newBet = { key: betKey, gameId, team, type, odds, point, matchup, amount: 0 };
             betSlip.push(newBet);
             event.currentTarget.classList.add('selected');
@@ -1074,7 +1203,6 @@
         function calculatePayout(odds, amount) {
             const oddsNum = parseFloat(odds);
             if (isNaN(oddsNum) || amount <= 0) return 0;
-
             if (oddsNum > 0) {
                 return amount * (oddsNum / 100) + amount;
             } else if (oddsNum < 0) {
@@ -1235,10 +1363,7 @@
                 const { error } = await supabase.from('user_bets').insert(betsToInsert);
                 if (error) throw error;
                 
-                const successDiv = document.createElement('div');
-                successDiv.className = 'success-message';
-                successDiv.textContent = `Successfully submitted your bets for Week ${currentWeek.week_number}!`;
-                document.getElementById('betSlipItems').prepend(successDiv);
+                showAlert(`Successfully submitted your bets for Week ${currentWeek.week_number}!`);
 
                 clearAllSelections();
                 
@@ -1248,7 +1373,7 @@
                     loadCurrentWeeksBets();
                 }, 2000);
             } catch (err) {
-                showValidationMessage('Failed to submit bets: ' + err.message);
+                showAlert('Failed to submit bets: ' + err.message);
                 console.error('Submission error:', err);
             } finally {
                 submitBtn.disabled = false;
@@ -1264,7 +1389,7 @@
                     .eq('is_active', true)
                     .single();
                 
-                if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows
+                if (error && error.code !== 'PGRST116') throw error;
                 
                 if (data) {
                     currentWeek = data;
@@ -1290,7 +1415,6 @@
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading your bets...</div>';
 
             try {
-                // Fetch all bets for the current user
                 const { data, error } = await supabase
                     .from('user_bets')
                     .select('*, betting_weeks(week_number, betting_deadline)')
@@ -1303,7 +1427,6 @@
                     return;
                 }
                 
-                // Sort the data to ensure the most recent bets are first
                 data.sort((a, b) => {
                     const weekComparison = b.week_id - a.week_id;
                     if (weekComparison !== 0) {
@@ -1312,7 +1435,6 @@
                     return new Date(b.last_updated_at) - new Date(a.last_updated_at);
                 });
 
-                // Group bets by week_id
                 const groupedBets = data.reduce((acc, bet) => {
                     const weekId = bet.week_id;
                     if (!acc[weekId]) {
@@ -1342,7 +1464,6 @@
                                     let betDetails = '';
                                     let displayOdds = bet.odds;
                                     
-                                    // Override odds for display purposes
                                     if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
                                         displayOdds = '-110';
                                     }
@@ -1356,11 +1477,16 @@
                                         betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${displayOdds})`;
                                     }
                                     
+                                    const outcomeClass = bet.bet_outcome ? bet.bet_outcome.toLowerCase() : '';
+
                                     return `
                                         <div class="bet-item">
                                             <div class="bet-item-left">
                                                 <div class="bet-description">${betDetails}</div>
                                                 <div class="bet-payout-calc">Wager: $${bet.bet_amount.toFixed(2)} | Payout: $${potentialPayout.toFixed(2)}</div>
+                                            </div>
+                                            <div class="bet-item-right">
+                                                <div class="bet-outcome ${outcomeClass}">${bet.bet_outcome || 'Pending'}</div>
                                             </div>
                                         </div>
                                     `;
@@ -1379,27 +1505,27 @@
         async function deleteMyCurrentBets() {
             if (!currentUser) return;
 
-            // Use a custom confirmation message to avoid browser alerts
-            const confirmation = confirm('Are you sure you want to delete all your bets for this week? This cannot be undone.');
-            if (!confirmation) {
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('user_bets')
-                    .delete()
-                    .eq('user_pin', currentUser.pin)
-                    .eq('week_id', currentWeek.id);
-                
-                if (error) throw error;
-                
-                alert('All your bets for this week have been deleted successfully.');
-                loadMyBets();
-            } catch (err) {
-                alert('Failed to delete bets: ' + err.message);
-                console.error('Deletion error:', err);
-            }
+            showConfirm(
+                'Are you sure you want to delete all your bets for this week? This cannot be undone.',
+                'Confirm Deletion',
+                async () => {
+                    try {
+                        const { error } = await supabase
+                            .from('user_bets')
+                            .delete()
+                            .eq('user_pin', currentUser.pin)
+                            .eq('week_id', currentWeek.id);
+                        
+                        if (error) throw error;
+                        
+                        showAlert('All your bets for this week have been deleted successfully.', 'Success');
+                        loadMyBets();
+                    } catch (err) {
+                        showAlert('Failed to delete bets: ' + err.message, 'Error');
+                        console.error('Deletion error:', err);
+                    }
+                }
+            );
         }
 
         async function loadCurrentWeeksBets() {
@@ -1413,72 +1539,40 @@
 
             const deadline = new Date(currentWeek.betting_deadline);
             if (new Date() < deadline) {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the Friday deadline.</div>`;
+                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the Saturday 11am deadline.</div>`;
                 return;
             }
 
             try {
                 const { data, error } = await supabase
-                    .from('user_bets')
+                    .from('weekly_results')
                     .select('*, users(name)')
                     .eq('week_id', currentWeek.id)
-                    .order('user_pin', { ascending: true });
+                    .order('winnings', { ascending: false });
+                
                 if (error) throw error;
 
                 if (data.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for this week yet.</div>';
+                    container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Winnings for this week have not been calculated yet.</div>';
                     return;
                 }
 
-                // Group bets by user
-                const groupedBets = data.reduce((acc, bet) => {
-                    const user = acc[bet.user_pin] || { name: bet.users.name, bets: [], last_updated_at: new Date(0) };
-                    user.bets.push(bet);
-                    const currentBetTime = new Date(bet.last_updated_at);
-                    if (currentBetTime > user.last_updated_at) {
-                        user.last_updated_at = currentBetTime;
-                    }
-                    acc[bet.user_pin] = user;
-                    return acc;
-                }, {});
-
-                container.innerHTML = Object.values(groupedBets).map(user => `
+                container.innerHTML = data.map((result, index) => `
                     <div class="game-card">
                         <div class="game-header">
-                            <div class="game-matchup"><strong>${user.name}'s Bets</strong></div>
-                            <div class="game-time">Last updated: ${user.last_updated_at.toLocaleDateString()} at ${user.last_updated_at.toLocaleTimeString()}</div>
+                            <div class="game-matchup"><strong>#${index + 1}: ${result.users.name}</strong></div>
                         </div>
-                        ${user.bets.map(bet => {
-                             let betDetails = '';
-                             let displayOdds = bet.odds;
-
-                             if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
-                                displayOdds = '-110';
-                             }
-
-                             if (bet.bet_type === 'moneyline') {
-                                 betDetails = `${bet.team_picked} Moneyline (${displayOdds})`;
-                             } else if (bet.bet_type === 'spread') {
-                                 const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
-                                 betDetails = `${bet.team_picked} ${pointFormatted} (${displayOdds})`;
-                             } else if (bet.bet_type === 'total') {
-                                 betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${displayOdds})`;
-                             }
-
-                             return `
-                                <div class="bet-item">
-                                    <div class="bet-item-left">
-                                        <div class="bet-description">${betDetails}</div>
-                                        <div class="bet-payout-calc">Wager: $${bet.bet_amount.toFixed(2)}</div>
-                                    </div>
-                                </div>
-                             `;
-                        }).join('')}
+                        <div style="padding: 1rem;">
+                            <div style="font-size: 1.1rem; font-weight: bold; color: #6ee7b7; text-align: center;">Winnings: $${result.winnings.toFixed(2)}</div>
+                            <div style="text-align: center; font-size: 0.9rem; color: #94a3b8; margin-top: 0.5rem;">
+                                ${result.won_bets} Won, ${result.lost_bets} Lost, ${result.pushed_bets} Push
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             } catch (err) {
-                container.innerHTML = `<div style="text-align: center; color: #fca5a5; padding: 2rem;">Failed to load current week's bets.</div>`;
-                console.error('Error loading current week bets:', err);
+                container.innerHTML = `<div style="text-align: center; color: #fca5a5; padding: 2rem;">Failed to load current week's board.</div>`;
+                console.error('Error loading current week board:', err);
             }
         }
         
@@ -1506,7 +1600,7 @@
                                 type: bet.bet_type,
                                 odds: bet.odds,
                                 point: bet.point_value,
-                                matchup: bet.teams, // Use the teams field from the database
+                                matchup: bet.teams,
                                 amount: bet.bet_amount
                             });
                             matchingOption.classList.add('selected');
@@ -1558,25 +1652,25 @@
         // Admin Functions
         async function loadOdds() {
             if (!currentUser?.is_admin) {
-                showValidationMessage('You are not authorized to perform this action.');
+                showAlert('You are not authorized to perform this action.');
                 return;
             }
             
             const weekNumber = prompt('Enter week number (e.g., 1):');
             if (!weekNumber || isNaN(weekNumber) || weekNumber < 1) {
-                alert('Please enter a valid week number.');
+                showAlert('Please enter a valid week number.');
                 return;
             }
             
-            const startDateStr = prompt('Enter a start date for the week (YYYY-MM-DD):');
-            if (!startDateStr) {
-                alert('Please enter a start date.');
+            const saturdayDateStr = prompt('Enter the Saturday date for the games (YYYY-MM-DD):');
+            if (!saturdayDateStr) {
+                showAlert('Please enter a Saturday date.');
                 return;
             }
 
-            const startDate = new Date(startDateStr + 'T00:00:00Z');
-            if (isNaN(startDate.getTime())) {
-                alert('Invalid date format. Please use YYYY-MM-DD.');
+            const saturdayDate = new Date(saturdayDateStr + 'T12:00:00Z');
+            if (isNaN(saturdayDate.getTime()) || saturdayDate.getUTCDay() !== 6) {
+                showAlert('Invalid date or not a Saturday. Please use YYYY-MM-DD format and ensure it\'s a Saturday.');
                 return;
             }
 
@@ -1589,42 +1683,34 @@
                 if (!response.ok) throw new Error('Failed to fetch odds from API');
                 const oddsDataFromApi = await response.json();
                 
-                // Calculate the end date (following Monday)
-                const startDayOfWeek = startDate.getUTCDay(); // Sunday is 0, Monday is 1, etc.
-                const daysUntilMonday = (1 + 7 - startDayOfWeek) % 7;
-                const endDate = new Date(startDate);
-                endDate.setUTCDate(startDate.getUTCDate() + daysUntilMonday);
-                endDate.setUTCHours(23, 59, 59, 999);
-                
-                const processedGames = [];
-                oddsDataFromApi.forEach(game => {
-                    const gameTime = new Date(game.commence_time);
-                    if (gameTime >= startDate && gameTime <= endDate) {
-                        const fanduelSite = game.bookmakers.find(b => b.key === 'fanduel');
-                        if (fanduelSite) {
-                            const spreads = fanduelSite.markets.find(m => m.key === 'spreads')?.outcomes || [];
-                            const totals = fanduelSite.markets.find(m => m.key === 'totals')?.outcomes || [];
-                            const moneyline = fanduelSite.markets.find(m => m.key === 'h2h')?.outcomes || [];
-                            
-                            const gameOdds = {
-                                id: game.id,
-                                home_team: game.home_team,
-                                away_team: game.away_team,
-                                commence_time: game.commence_time,
-                                spreads,
-                                totals,
-                                moneyline
-                            };
-                            processedGames.push(gameOdds);
-                        }
+                const processedGames = oddsDataFromApi.filter(game => {
+                    const gameDate = new Date(game.commence_time);
+                    return gameDate.getUTCFullYear() === saturdayDate.getUTCFullYear() &&
+                           gameDate.getUTCMonth() === saturdayDate.getUTCMonth() &&
+                           gameDate.getUTCDate() === saturdayDate.getUTCDate();
+                }).map(game => {
+                    const fanduelSite = game.bookmakers.find(b => b.key === 'fanduel');
+                    if (fanduelSite) {
+                        const spreads = fanduelSite.markets.find(m => m.key === 'spreads')?.outcomes || [];
+                        const totals = fanduelSite.markets.find(m => m.key === 'totals')?.outcomes || [];
+                        const moneyline = fanduelSite.markets.find(m => m.key === 'h2h')?.outcomes || [];
+                        
+                        return {
+                            id: game.id,
+                            home_team: game.home_team,
+                            away_team: game.away_team,
+                            commence_time: game.commence_time,
+                            spreads,
+                            totals,
+                            moneyline
+                        };
                     }
-                });
+                    return null;
+                }).filter(game => game !== null);
 
                 await supabase.from('betting_weeks').update({ is_active: false }).eq('is_active', true);
                 
-                const deadline = new Date(startDate);
-                deadline.setDate(deadline.getDate() + ((5 - deadline.getDay() + 7) % 7));
-                deadline.setHours(11, 0, 0, 0);
+                const deadline = new Date(saturdayDate.setUTCHours(11, 0, 0, 0));
                 
                 const { data: newWeek, error } = await supabase.from('betting_weeks').insert([{
                     week_number: parseInt(weekNumber),
@@ -1639,9 +1725,9 @@
                 oddsData = processedGames;
                 updateGamesDisplay(oddsData);
                 
-                alert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`);
+                showAlert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`, 'Success');
             } catch (err) {
-                alert('Failed to load odds: ' + err.message);
+                showAlert('Failed to load odds: ' + err.message, 'Error');
                 console.error('Odds loading error:', err);
             } finally {
                 btn.disabled = false;
@@ -1785,7 +1871,205 @@
                 messageEl.classList.add('hidden');
             }, 3000);
         }
+
+        async function loadGamesForOutcomes() {
+            if (!currentUser?.is_admin || !currentWeek) return;
+            const container = document.getElementById('gameOutcomesContainer');
+            container.innerHTML = '<div style="text-align: center; color: #94a3b8;">Loading games...</div>';
+
+            try {
+                const games = currentWeek.api_data.games;
+                const pastGames = games.filter(g => new Date(g.commence_time) < new Date());
+                
+                if (pastGames.length === 0) {
+                    container.innerHTML = `<div style="text-align: center; color: #94a3b8;">No games have started yet.</div>`;
+                    return;
+                }
+                
+                container.innerHTML = pastGames.map(game => `
+                    <div class="game-card" style="margin-bottom: 1rem;">
+                        <div class="game-header" onclick="toggleGameBets('${game.id}')">
+                            <div class="game-matchup"><strong>${game.away_team} @ ${game.home_team}</strong></div>
+                            <div class="game-time">${new Date(game.commence_time).toLocaleString()}</div>
+                        </div>
+                        <div id="gameBets-${game.id}" class="game-bets hidden" style="padding: 1rem;">
+                            <div style="text-align: center; color: #94a3b8;">Loading bets...</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<div style="text-align: center; color: #fca5a5;">Failed to load games.</div>`;
+                console.error('Error loading admin games:', err);
+            }
+        }
         
+        async function toggleGameBets(gameId) {
+            const betContainer = document.getElementById(`gameBets-${gameId}`);
+            if (betContainer.classList.contains('hidden')) {
+                betContainer.classList.remove('hidden');
+                await loadBetsForGame(gameId);
+            } else {
+                betContainer.classList.add('hidden');
+            }
+        }
+
+        async function loadBetsForGame(gameId) {
+            const container = document.getElementById(`gameBets-${gameId}`);
+            try {
+                const { data, error } = await supabase
+                    .from('user_bets')
+                    .select('*, users(name)')
+                    .eq('game_id', gameId)
+                    .eq('week_id', currentWeek.id);
+                
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = `<div style="text-align: center; color: #94a3b8;">No bets placed on this game.</div>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    ${data.map(bet => {
+                        const isSettled = bet.bet_outcome !== 'pending';
+                        let betDetails = '';
+                        if (bet.bet_type === 'moneyline') {
+                            betDetails = `${bet.users.name} picked ${bet.team_picked} Moneyline`;
+                        } else if (bet.bet_type === 'spread') {
+                             const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
+                            betDetails = `${bet.users.name} picked ${bet.team_picked} ${pointFormatted}`;
+                        } else if (bet.bet_type === 'total') {
+                            betDetails = `${bet.users.name} picked ${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value}`;
+                        }
+
+                        return `
+                            <div class="bet-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(71, 85, 105, 0.3);">
+                                <div style="flex-grow:1;">
+                                    <div style="font-size: 0.95rem;">${betDetails}</div>
+                                    <div style="font-size: 0.8rem; color: #94a3b8;">Wager: $${bet.bet_amount.toFixed(2)}</div>
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <div class="bet-outcome ${bet.bet_outcome}">${bet.bet_outcome}</div>
+                                    <button class="outcome-btn win" onclick="updateBetOutcome('${bet.id}', 'win')" ${isSettled ? 'disabled' : ''}>Win</button>
+                                    <button class="outcome-btn loss" onclick="updateBetOutcome('${bet.id}', 'loss')" ${isSettled ? 'disabled' : ''}>Loss</button>
+                                    <button class="outcome-btn push" onclick="updateBetOutcome('${bet.id}', 'push')" ${isSettled ? 'disabled' : ''}>Push</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+            } catch (err) {
+                container.innerHTML = `<div style="text-align: center; color: #fca5a5;">Failed to load bets for this game.</div>`;
+                console.error('Error loading bets for game:', err);
+            }
+        }
+
+        async function updateBetOutcome(betId, outcome) {
+            if (!currentUser?.is_admin) return;
+
+            try {
+                const { error } = await supabase
+                    .from('user_bets')
+                    .update({ bet_outcome: outcome })
+                    .eq('id', betId);
+                
+                if (error) throw error;
+                
+                showAlert('Bet outcome updated successfully!', 'Success');
+                await loadBetsForGame(
+                    document.getElementById(`gameBets-${betId}`).parentElement.querySelector('.game-bets').id.split('-')[1]
+                );
+            } catch (err) {
+                showAlert('Failed to update bet outcome: ' + err.message, 'Error');
+                console.error('Update bet outcome error:', err);
+            }
+        }
+        
+        async function calculateWeeklyWinnings() {
+            if (!currentUser?.is_admin || !currentWeek) {
+                showAlert('You are not authorized or a current week is not active.', 'Error');
+                return;
+            }
+
+            showConfirm(
+                'Are you sure you want to calculate weekly winnings? This will overwrite previous calculations for this week.',
+                'Confirm Calculation',
+                async () => {
+                    const btn = document.getElementById('calculateWinningsBtn');
+                    btn.disabled = true;
+                    btn.textContent = 'Calculating...';
+
+                    try {
+                        const { data: allBets, error } = await supabase
+                            .from('user_bets')
+                            .select('*')
+                            .eq('week_id', currentWeek.id)
+                            .in('bet_outcome', ['win', 'loss', 'push']);
+                        
+                        if (error) throw error;
+
+                        const userResults = {};
+                        
+                        allBets.forEach(bet => {
+                            if (!userResults[bet.user_pin]) {
+                                userResults[bet.user_pin] = {
+                                    winnings: 0,
+                                    won_bets: 0,
+                                    lost_bets: 0,
+                                    pushed_bets: 0
+                                };
+                            }
+                            
+                            const result = userResults[bet.user_pin];
+                            if (bet.bet_outcome === 'win') {
+                                result.winnings += calculatePayout(bet.odds, bet.bet_amount) - bet.bet_amount;
+                                result.won_bets++;
+                            } else if (bet.bet_outcome === 'push') {
+                                result.pushed_bets++;
+                            } else {
+                                result.winnings -= bet.bet_amount;
+                                result.lost_bets++;
+                            }
+                        });
+
+                        const weeklyResultsToInsert = Object.keys(userResults).map(pin => ({
+                            user_pin: pin,
+                            week_id: currentWeek.id,
+                            winnings: userResults[pin].winnings,
+                            won_bets: userResults[pin].won_bets,
+                            lost_bets: userResults[pin].lost_bets,
+                            pushed_bets: userResults[pin].pushed_bets
+                        }));
+
+                        await supabase.from('weekly_results').delete().eq('week_id', currentWeek.id);
+                        const { error: insertError } = await supabase.from('weekly_results').insert(weeklyResultsToInsert);
+                        if (insertError) throw insertError;
+
+                        // Also update total points for each user
+                        const { data: usersData, error: usersError } = await supabase.from('users').select('pin, total_points');
+                        if (usersError) throw usersError;
+                        
+                        for (const user of usersData) {
+                             if (userResults[user.pin]) {
+                                 const newTotal = user.total_points + userResults[user.pin].winnings;
+                                 await supabase.from('users').update({ total_points: newTotal }).eq('pin', user.pin);
+                             }
+                        }
+
+                        showAlert('Weekly winnings calculated and saved successfully!', 'Success');
+                        loadCurrentWeeksBets();
+                        loadLeaderboard();
+                    } catch (err) {
+                        showAlert('Failed to calculate winnings: ' + err.message, 'Error');
+                        console.error('Calculate winnings error:', err);
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Calculate Winnings';
+                    }
+                }
+            );
+        }
+
         window.onclick = function(event) {
             const modal = document.getElementById('betSlipModal');
             if (event.target === modal) {
