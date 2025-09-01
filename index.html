@@ -623,7 +623,7 @@
     <div class="nav-bubbles">
         <div class="nav-bubble active" onclick="showPage('thisWeek', this)">This Week</div>
         <div class="nav-bubble" onclick="showPage('myBets', this)">My Bets</div>
-        <div class="nav-bubble" onclick="showPage('currentWeekBets', this)">Current Week's Bets</div>
+        <div class="nav-bubble" onclick="showPage('currentWeekBets', this)">Current Week Board</div>
         <div class="nav-bubble" onclick="showPage('leaderboard', this)">Leaderboard</div>
         <div class="nav-bubble admin hidden" id="adminNav" onclick="showPage('admin', this)">Admin</div>
         <div class="nav-bubble" onclick="showPage('settings', this)">Settings</div>
@@ -651,7 +651,7 @@
 
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">This Week's Bets</h2>
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">This Week's Board</h2>
             <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 11 AM ET)</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
@@ -703,7 +703,7 @@
                 <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>New odds loaded every Tuesday at 3 PM ET (Admins only)</li>
+                        <li>Admins load odds each week - every Tuesday around 3 PM ET</li>
                         <li>Place bets until Friday 11 AM ET deadline</li>
                         <li>Must bet exactly $20 total in fake money</li>
                         <li>Choose 3-5 games minimum</li>
@@ -716,17 +716,16 @@
                         <li>Moneyline OR Spread (not both for same game)</li>
                         <li>Over/Under totals (can combine with moneyline/spread)</li>
                         <li>Edit your bets anytime before Friday deadline</li>
-                        <li>No peeking at others' bets until after deadline</li>
                     </ul>
                 </div>
                 <div style="color: #cbd5e1;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Scoring & Points</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Weekly winner gets 3 points</li>
-                        <li>Second place gets 2 points</li>
-                        <li>Third place gets 1 point</li>
-                        <li>Points accumulate for season leaderboard</li>
-                        <li>Admins award points based on weekly winnings</li>
+                        <li>Weekly winner gets 50% of the pot</li>
+                        <li>Second place gets 30% of the pot</li>
+                        <li>20% of the weekly pot goes into the season pot</li>
+                        <li>Weekly wins accumulate throughout the season and tallied on the leaderboard</li>
+                        <li>Top 3 season long finishers will receive following payouts - 70%, 20%, and 10%</li>
                     </ul>
                 </div>
             </div>
@@ -1272,11 +1271,11 @@
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading your bets...</div>';
 
             try {
+                // Fetch all bets for the current user
                 const { data, error } = await supabase
                     .from('user_bets')
                     .select('*, betting_weeks(week_number, betting_deadline)')
-                    .eq('user_pin', currentUser.pin)
-                    .order('week_id', { ascending: false });
+                    .eq('user_pin', currentUser.pin);
                 
                 if (error) throw error;
                 
@@ -1285,6 +1284,15 @@
                     return;
                 }
                 
+                // Sort the data to ensure the most recent bets are first
+                data.sort((a, b) => {
+                    const weekComparison = b.week_id - a.week_id;
+                    if (weekComparison !== 0) {
+                        return weekComparison;
+                    }
+                    return new Date(b.last_updated_at) - new Date(a.last_updated_at);
+                });
+
                 // Group bets by week_id
                 const groupedBets = data.reduce((acc, bet) => {
                     const weekId = bet.week_id;
@@ -1550,7 +1558,7 @@
                         <div class="team-row">
                             <div class="team-name">${homeTeam}</div>
                             <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'moneyline', '${homeML}', null, '${matchup}')" data-bet="${gameId}-${homeTeam}-moneyline">${homeML !== 'N/A' && homeML > 0 ? '+' + homeML : homeML}</div>
-                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '${homeSpreadOdds}', ${homeSpreadPoint !== undefined ? homeSpreadPoint : null}, '${matchup}')" data-bet="${gameId}-${homeTeam}-spread">${homeSpreadPointFormatted}</div>
+                            <div class="bet-option" onclick="selectBet(event, '${gameId}', '${homeTeam}', 'spread', '${homeSpreadOdds}', ${homeSpreadPoint !== undefined ? homeSpreadPoint : null}, '${matchup}')" data-bet="${gameId}-Under-total">${homeSpreadPointFormatted}</div>
                             <div class="bet-option" onclick="selectBet(event, '${gameId}', 'Under', 'total', '${underTotalOdds}', ${underTotalPoint !== undefined ? underTotalPoint : null}, '${matchup}')" data-bet="${gameId}-Under-total">${underPointFormatted}</div>
                         </div>
                     </div>
