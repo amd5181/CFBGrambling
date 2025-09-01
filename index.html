@@ -390,7 +390,7 @@
             text-align: center;
         }
 
-        .edit-btn {
+        .edit-btn, .delete-btn {
             background: linear-gradient(135deg, #1d4ed8, #1e40af);
             border: none;
             color: white;
@@ -402,6 +402,11 @@
             transition: all 0.2s;
             display: inline-block;
             margin-top: 1rem;
+            margin-right: 0.5rem;
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
         }
         
         /* Auth Modal */
@@ -623,8 +628,8 @@
     <div class="nav-bubbles">
         <div class="nav-bubble active" onclick="showPage('thisWeek', this)">This Week</div>
         <div class="nav-bubble" onclick="showPage('myBets', this)">My Bets</div>
-        <div class="nav-bubble" onclick="showPage('currentWeekBets', this)">Current Week Board</div>
-        <div class="nav-bubble" onclick="showPage('leaderboard', this)">Season Leaderboard</div>
+        <div class="nav-bubble" onclick="showPage('currentWeekBets', this)">Current Week's Bets</div>
+        <div class="nav-bubble" onclick="showPage('leaderboard', this)">Leaderboard</div>
         <div class="nav-bubble admin hidden" id="adminNav" onclick="showPage('admin', this)">Admin</div>
         <div class="nav-bubble" onclick="showPage('settings', this)">Settings</div>
         <div class="nav-bubble logout-btn" onclick="handleLogout()">Logout</div>
@@ -651,8 +656,8 @@
 
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
-            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week Board</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks - Friday 3PM ET</p>
+            <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week's Bets</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 11 AM ET)</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
             </div>
@@ -703,7 +708,7 @@
                 <div style="color: #cbd5e1; margin-bottom: 1.5rem;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Weekly Betting</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>New odds loaded every Tuesday approximately 3 PM ET</li>
+                        <li>New odds loaded every Tuesday at 3 PM ET (Admins only)</li>
                         <li>Place bets until Friday 11 AM ET deadline</li>
                         <li>Must bet exactly $20 total in fake money</li>
                         <li>Choose 3-5 games minimum</li>
@@ -722,11 +727,11 @@
                 <div style="color: #cbd5e1;">
                     <h4 style="color: #e2e8f0; margin-bottom: 0.5rem;">Scoring & Points</h4>
                     <ul style="margin-left: 1.5rem; color: #94a3b8;">
-                        <li>Weekly winner gets 50% of the weekly pot</li>
-                        <li>Second place gets 30% of the weekly pot</li>
-                        <li>20% of the weekly pot goes into a season long pot</li>
-                        <li>Winnings accumulate for season leaderboard</li>
-                        <li>Season long winners will be paid out - 70%, 20%, 10%</li>
+                        <li>Weekly winner gets 3 points</li>
+                        <li>Second place gets 2 points</li>
+                        <li>Third place gets 1 point</li>
+                        <li>Points accumulate for season leaderboard</li>
+                        <li>Admins award points based on weekly winnings</li>
                     </ul>
                 </div>
             </div>
@@ -1138,7 +1143,7 @@
             
             if (betSlip.length < 3) {
                 isValid = false;
-                message = `You need to add ${3 - betSlip.length} more bet${3 - betSlip.length > 1 ? 's' : ''}.`;
+                message = `Add ${3 - betSlip.length} more bet${3 - betSlip.length > 1 ? 's' : ''} to meet the minimum of 3.`;
             } else if (betSlip.length > 5) {
                 isValid = false;
                 message = 'You have too many bets! The maximum is 5.';
@@ -1316,19 +1321,26 @@
                         <div class="game-card" style="margin-bottom: 2rem;">
                             <div class="game-header">
                                 <div class="game-matchup"><strong>Week ${week.week_number} Bets</strong></div>
-                                ${isEditable ? `<div class="game-time" style="color:#6ee7b7;">Active: ${week.deadline.toLocaleDateString()} at ${week.deadline.toLocaleTimeString()}</div>` : `<div class="game-time">Locked in: ${week.deadline.toLocaleDateString()}</div>`}
+                                ${isEditable ? `<div class="game-time" style="color:#6ee7b7;">Active: Editable until ${week.deadline.toLocaleDateString()} at ${week.deadline.toLocaleTimeString()}</div>` : `<div class="game-time">Locked in: ${week.deadline.toLocaleDateString()}</div>`}
                             </div>
                             <div style="padding: 1rem;">
                                 ${week.bets.map(bet => {
                                     const potentialPayout = calculatePayout(bet.odds, bet.bet_amount);
                                     let betDetails = '';
+                                    let displayOdds = bet.odds;
+                                    
+                                    // Override odds for display purposes
+                                    if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
+                                        displayOdds = '-110';
+                                    }
+
                                     if (bet.bet_type === 'moneyline') {
-                                        betDetails = `${bet.team_picked} Moneyline (${bet.odds})`;
+                                        betDetails = `${bet.team_picked} Moneyline (${displayOdds})`;
                                     } else if (bet.bet_type === 'spread') {
                                         const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
-                                        betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
+                                        betDetails = `${bet.team_picked} ${pointFormatted} (${displayOdds})`;
                                     } else if (bet.bet_type === 'total') {
-                                        betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                                        betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${displayOdds})`;
                                     }
                                     
                                     return `
@@ -1340,7 +1352,7 @@
                                         </div>
                                     `;
                                 }).join('')}
-                                ${isEditable ? `<button class="edit-btn" onclick="editMyCurrentBets()">Edit Bets</button>` : ''}
+                                ${isEditable ? `<button class="edit-btn" onclick="editMyCurrentBets()">Edit Bets</button><button class="delete-btn" onclick="deleteMyCurrentBets()">Delete All Bets</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -1351,6 +1363,32 @@
             }
         }
         
+        async function deleteMyCurrentBets() {
+            if (!currentUser) return;
+
+            // Use a custom confirmation message to avoid browser alerts
+            const confirmation = confirm('Are you sure you want to delete all your bets for this week? This cannot be undone.');
+            if (!confirmation) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('user_bets')
+                    .delete()
+                    .eq('user_pin', currentUser.pin)
+                    .eq('week_id', currentWeek.id);
+                
+                if (error) throw error;
+                
+                alert('All your bets for this week have been deleted successfully.');
+                loadMyBets();
+            } catch (err) {
+                alert('Failed to delete bets: ' + err.message);
+                console.error('Deletion error:', err);
+            }
+        }
+
         async function loadCurrentWeeksBets() {
             const container = document.getElementById('currentWeekBetsContainer');
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week\'s bets...</div>';
@@ -1362,7 +1400,7 @@
 
             const deadline = new Date(currentWeek.betting_deadline);
             if (new Date() < deadline) {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the weekly deadline.</div>`;
+                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the deadline of ${deadline.toLocaleString()}.</div>`;
                 return;
             }
 
@@ -1399,13 +1437,19 @@
                         </div>
                         ${user.bets.map(bet => {
                              let betDetails = '';
+                             let displayOdds = bet.odds;
+
+                             if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
+                                displayOdds = '-110';
+                             }
+
                              if (bet.bet_type === 'moneyline') {
-                                 betDetails = `${bet.team_picked} Moneyline (${bet.odds})`;
+                                 betDetails = `${bet.team_picked} Moneyline (${displayOdds})`;
                              } else if (bet.bet_type === 'spread') {
                                  const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
-                                 betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
+                                 betDetails = `${bet.team_picked} ${pointFormatted} (${displayOdds})`;
                              } else if (bet.bet_type === 'total') {
-                                 betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                                 betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${displayOdds})`;
                              }
 
                              return `
