@@ -1269,7 +1269,6 @@
                 if (data) {
                     currentWeek = data;
                     oddsData = data.api_data.games;
-                    // Now displaying all games instead of just the first 10
                     updateGamesDisplay(oddsData); 
                     console.log('Loaded active week:', currentWeek);
                 } else {
@@ -1597,13 +1596,31 @@
                 endDate.setUTCDate(startDate.getUTCDate() + daysUntilMonday);
                 endDate.setUTCHours(23, 59, 59, 999);
                 
-                // Filter games based on the date range
-                const filteredGames = oddsDataFromApi.filter(game => {
+                const processedGames = [];
+                oddsDataFromApi.forEach(game => {
                     const gameTime = new Date(game.commence_time);
-                    return gameTime >= startDate && gameTime <= endDate;
+                    if (gameTime >= startDate && gameTime <= endDate) {
+                        const fanduelSite = game.bookmakers.find(b => b.key === 'fanduel');
+                        if (fanduelSite) {
+                            const spreads = fanduelSite.markets.find(m => m.key === 'spreads')?.outcomes || [];
+                            const totals = fanduelSite.markets.find(m => m.key === 'totals')?.outcomes || [];
+                            const moneyline = fanduelSite.markets.find(m => m.key === 'h2h')?.outcomes || [];
+                            
+                            const gameOdds = {
+                                id: game.id,
+                                home_team: game.home_team,
+                                away_team: game.away_team,
+                                commence_time: game.commence_time,
+                                spreads,
+                                totals,
+                                moneyline
+                            };
+                            processedGames.push(gameOdds);
+                        }
+                    }
                 });
-                
-                await supabase.from('betting_weeks').update({ is_active: false }).neq('id', 0);
+
+                await supabase.from('betting_weeks').update({ is_active: false }).eq('is_active', true);
                 
                 const deadline = new Date(startDate);
                 deadline.setDate(deadline.getDate() + ((5 - deadline.getDay() + 7) % 7));
@@ -1612,14 +1629,14 @@
                 const { data: newWeek, error } = await supabase.from('betting_weeks').insert([{
                     week_number: parseInt(weekNumber),
                     year: new Date().getFullYear(),
-                    api_data: { games: filteredGames }, // Save the filtered games
+                    api_data: { games: processedGames }, 
                     betting_deadline: deadline.toISOString(),
                     is_active: true
                 }]).select();
                 
                 if (error) throw error;
                 currentWeek = newWeek[0];
-                oddsData = filteredGames;
+                oddsData = processedGames;
                 updateGamesDisplay(oddsData);
                 
                 alert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`);
@@ -1630,6 +1647,62 @@
                 btn.disabled = false;
                 btn.textContent = 'Load Odds';
             }
+        }
+        
+        function updateGamesDisplay(games) {
+            const container = document.getElementById('gamesContainer');
+            if (!games || games.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No games available for this week.</div>';
+                return;
+            }
+
+            container.innerHTML = games.map(game => {
+                const gameDate = new Date(game.commence_time);
+                const isExpired = new Date() > gameDate;
+                const gameExpiredClass = isExpired ? 'bet-option-disabled' : '';
+
+                return `
+                    <div class="game-card">
+                        <div class="game-header">
+                            <div class="game-matchup">${game.away_team} @ ${game.home_team}</div>
+                            <div class="game-time">${gameDate.toLocaleString()}</div>
+                        </div>
+                        <div class="game-body">
+                            <!-- Moneyline and Spread -->
+                            <div class="team-row">
+                                <div class="team-name">${game.away_team}</div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-${game.away_team}-moneyline" onclick="selectBet(event, '${game.id}', '${game.away_team}', 'moneyline', '${game.moneyline.find(o => o.name === game.away_team)?.price}', null, '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Moneyline</div>
+                                    <div class="bet-price">${game.moneyline.find(o => o.name === game.away_team)?.price || '-'}</div>
+                                </div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-${game.away_team}-spread" onclick="selectBet(event, '${game.id}', '${game.away_team}', 'spread', '-110', '${game.spreads.find(o => o.name === game.away_team)?.point}', '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Spread</div>
+                                    <div class="bet-price">${game.spreads.find(o => o.name === game.away_team)?.point > 0 ? '+' : ''}${game.spreads.find(o => o.name === game.away_team)?.point || '-'}</div>
+                                </div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-Over-total" onclick="selectBet(event, '${game.id}', 'Over', 'total', '-110', '${game.totals.find(o => o.name === 'Over')?.point}', '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Total</div>
+                                    <div class="bet-price">O ${game.totals.find(o => o.name === 'Over')?.point || '-'}</div>
+                                </div>
+                            </div>
+                            <div class="team-row">
+                                <div class="team-name">${game.home_team}</div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-${game.home_team}-moneyline" onclick="selectBet(event, '${game.id}', '${game.home_team}', 'moneyline', '${game.moneyline.find(o => o.name === game.home_team)?.price}', null, '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Moneyline</div>
+                                    <div class="bet-price">${game.moneyline.find(o => o.name === game.home_team)?.price || '-'}</div>
+                                </div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-${game.home_team}-spread" onclick="selectBet(event, '${game.id}', '${game.home_team}', 'spread', '-110', '${game.spreads.find(o => o.name === game.home_team)?.point}', '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Spread</div>
+                                    <div class="bet-price">${game.spreads.find(o => o.name === game.home_team)?.point > 0 ? '+' : ''}${game.spreads.find(o => o.name === game.home_team)?.point || '-'}</div>
+                                </div>
+                                <div class="bet-option ${gameExpiredClass}" data-bet="${game.id}-Under-total" onclick="selectBet(event, '${game.id}', 'Under', 'total', '-110', '${game.totals.find(o => o.name === 'Under')?.point}', '${game.away_team} @ ${game.home_team}')">
+                                    <div class="bet-label">Total</div>
+                                    <div class="bet-price">U ${game.totals.find(o => o.name === 'Under')?.point || '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
         
         async function loadUsersForAdmin() {
