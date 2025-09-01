@@ -1091,7 +1091,7 @@
                         const pointFormatted = bet.point > 0 ? `+${bet.point}` : bet.point;
                         description = `${bet.team} ${pointFormatted}`;
                     } else if (bet.type === 'total') {
-                        description = `${bet.team === 'Over' ? 'Over' : 'Under'} ${bet.point}`;
+                        description = `${bet.matchup} ${bet.team === 'Over' ? 'Over' : 'Under'} ${bet.point}`;
                     }
                     const payoutText = `Potential Payout: $${potentialPayout.toFixed(2)}`;
 
@@ -1210,6 +1210,7 @@
                     odds: bet.odds,
                     bet_type: bet.type,
                     point_value: bet.point,
+                    teams: bet.matchup,
                     last_updated_at: new Date().toISOString()
                 }));
                 
@@ -1318,7 +1319,7 @@
                                         const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
                                         betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
                                     } else if (bet.bet_type === 'total') {
-                                        betDetails = `${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                                        betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
                                     }
                                     
                                     return `
@@ -1395,7 +1396,7 @@
                                  const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
                                  betDetails = `${bet.team_picked} ${pointFormatted} (${bet.odds})`;
                              } else if (bet.bet_type === 'total') {
-                                 betDetails = `${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
+                                 betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${bet.odds})`;
                              }
 
                              return `
