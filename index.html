@@ -657,7 +657,7 @@
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
             <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week Board</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks (available after Friday 3 PM ET)</p>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
             </div>
@@ -818,7 +818,9 @@
         let betSlip = [];
         let currentWeek = null;
         let oddsData = null;
-
+        const LOGOUT_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+        let logoutTimer = null;
+        
         // Initialize app on page load
         window.addEventListener('DOMContentLoaded', () => {
             initializeSupabase();
@@ -832,6 +834,12 @@
             document.getElementById('registerName').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleRegister();
             });
+            
+            // Start the logout timer and add activity listeners
+            resetLogoutTimer();
+            document.addEventListener('mousemove', resetLogoutTimer);
+            document.addEventListener('keydown', resetLogoutTimer);
+            document.addEventListener('click', resetLogoutTimer);
         });
         
         function initializeSupabase() {
@@ -850,13 +858,28 @@
         function checkAuth() {
             const savedUser = localStorage.getItem('cfb_user');
             if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                hideAuthModal();
-                updateUserDisplay();
-                loadInitialData();
+                const user = JSON.parse(savedUser);
+                const lastActivity = parseInt(localStorage.getItem('cfb_last_activity') || '0', 10);
+                if (Date.now() - lastActivity > LOGOUT_TIMEOUT) {
+                    // Force logout if the session has expired
+                    handleLogout();
+                } else {
+                    currentUser = user;
+                    hideAuthModal();
+                    updateUserDisplay();
+                    loadInitialData();
+                }
             } else {
                 showAuthModal();
             }
+        }
+        
+        function resetLogoutTimer() {
+            clearTimeout(logoutTimer);
+            localStorage.setItem('cfb_last_activity', Date.now());
+            logoutTimer = setTimeout(() => {
+                handleLogout();
+            }, LOGOUT_TIMEOUT);
         }
         
         async function loadInitialData() {
@@ -932,6 +955,7 @@
                 if (error) throw error;
                 currentUser = data;
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
+                localStorage.setItem('cfb_last_activity', Date.now()); // Set initial activity timestamp
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -966,6 +990,7 @@
                 
                 currentUser = data[0];
                 localStorage.setItem('cfb_user', JSON.stringify(currentUser));
+                localStorage.setItem('cfb_last_activity', Date.now()); // Set initial activity timestamp
                 hideAuthModal();
                 updateUserDisplay();
                 loadInitialData();
@@ -981,6 +1006,7 @@
         function handleLogout() {
             currentUser = null;
             localStorage.removeItem('cfb_user');
+            localStorage.removeItem('cfb_last_activity');
             betSlip = [];
             updateBetSlip();
             clearAllSelections();
@@ -1392,27 +1418,34 @@
             const container = document.getElementById('currentWeekBetsContainer');
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week\'s bets...</div>';
 
-            if (!currentWeek) {
-                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Betting for this week has not started yet.</div>';
-                return;
-            }
-
-            const deadline = new Date(currentWeek.betting_deadline);
-            if (new Date() < deadline) {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">Bets will be revealed after the Friday deadline.</div>`;
-                return;
-            }
-
             try {
+                // Find the week with the most recent past betting deadline
+                const { data: recentWeekData, error: weekError } = await supabase
+                    .from('betting_weeks')
+                    .select('id, betting_deadline')
+                    .lt('betting_deadline', new Date().toISOString())
+                    .order('betting_deadline', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (weekError && weekError.code !== 'PGRST116') throw weekError;
+
+                if (!recentWeekData) {
+                    container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No previous week\'s bets to display yet.</div>';
+                    return;
+                }
+
+                // Now fetch bets for that specific week
                 const { data, error } = await supabase
                     .from('user_bets')
-                    .select('*, users(name)')
-                    .eq('week_id', currentWeek.id)
+                    .select('*, users(name), betting_weeks(week_number)')
+                    .eq('week_id', recentWeekData.id)
                     .order('user_pin', { ascending: true });
+
                 if (error) throw error;
 
                 if (data.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for this week yet.</div>';
+                    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for Week ${data[0].betting_weeks.week_number} yet.</div>`;
                     return;
                 }
 
@@ -1532,7 +1565,7 @@
                             <div style="font-size: 1.2rem; font-weight: bold; color: #94a3b8;">#${index + 1}</div>
                             <div style="font-size: 1.1rem; font-weight: bold;">${user.name}</div>
                         </div>
-                        <div style="font-size: 1.1rem; font-weight: bold; color: #6ee7b7;">${user.total_points} pts</div>
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #6ee7b7;">$${user.total_points.toFixed(2)}</div>
                     </div>
                 `).join('');
             } catch (err) {
@@ -1631,6 +1664,14 @@
                 if (!response.ok) throw new Error('Failed to fetch odds from API');
                 const oddsDataFromApi = await response.json();
                 
+                // Filter games to only include those within the next 7 days
+                const now = new Date();
+                const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const filteredGames = oddsDataFromApi.filter(game => {
+                    const gameTime = new Date(game.commence_time);
+                    return gameTime >= now && gameTime <= oneWeekFromNow;
+                });
+                
                 await supabase.from('betting_weeks').update({ is_active: false }).neq('id', 0);
                 
                 const deadline = new Date();
@@ -1640,14 +1681,14 @@
                 const { data: newWeek, error } = await supabase.from('betting_weeks').insert([{
                     week_number: parseInt(weekNumber),
                     year: new Date().getFullYear(),
-                    api_data: { games: oddsDataFromApi },
+                    api_data: { games: filteredGames },
                     betting_deadline: deadline.toISOString(),
                     is_active: true
                 }]).select();
                 
                 if (error) throw error;
                 currentWeek = newWeek[0];
-                oddsData = oddsDataFromApi;
+                oddsData = filteredGames;
                 updateGamesDisplay(oddsData);
                 
                 alert(`Successfully loaded odds for Week ${weekNumber}! Found ${oddsData.length} games.`);
