@@ -657,7 +657,6 @@
         <!-- Current Week's Bets Page -->
         <div id="currentWeekBets" class="page">
             <h2 style="margin-bottom: 1rem; color: #e2e8f0;">Current Week Board</h2>
-            <p style="color: #94a3b8; margin-bottom: 2rem;">See everyone's picks</p>
             <div id="currentWeekBetsContainer">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week's bets...</div>
             </div>
@@ -1416,7 +1415,9 @@
 
         async function loadCurrentWeeksBets() {
             const container = document.getElementById('currentWeekBetsContainer');
+            const pageHeader = document.querySelector('#currentWeekBets h2');
             container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">Loading current week\'s bets...</div>';
+            pageHeader.textContent = 'Current Week Board'; // Reset title while loading
 
             try {
                 // Find the week with the most recent past betting deadline
@@ -1434,6 +1435,10 @@
                     container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No previous week\'s bets to display yet.</div>';
                     return;
                 }
+                
+                const deadlineDate = new Date(recentWeekData.betting_deadline);
+                const formattedDate = deadlineDate.toLocaleDateString('en-US');
+                pageHeader.textContent = `Picks for the Weekend of ${formattedDate}`;
 
                 // Now fetch bets for that specific week
                 const { data, error } = await supabase
@@ -1445,54 +1450,55 @@
                 if (error) throw error;
 
                 if (data.length === 0) {
-                    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for Week ${data[0].betting_weeks.week_number} yet.</div>`;
+                    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for the week of ${formattedDate} yet.</div>`;
                     return;
                 }
 
                 // Group bets by user
                 const groupedBets = data.reduce((acc, bet) => {
-                    const user = acc[bet.user_pin] || { name: bet.users.name, bets: [], last_updated_at: new Date(0) };
+                    const user = acc[bet.user_pin] || { name: bet.users.name, bets: [] };
                     user.bets.push(bet);
-                    const currentBetTime = new Date(bet.last_updated_at);
-                    if (currentBetTime > user.last_updated_at) {
-                        user.last_updated_at = currentBetTime;
-                    }
                     acc[bet.user_pin] = user;
                     return acc;
                 }, {});
 
                 container.innerHTML = Object.values(groupedBets).map(user => `
                     <div class="game-card">
-                        <div class="game-header">
+                        <div class="game-header" style="background: none; border-bottom: none; padding-bottom: 0;">
                             <div class="game-matchup"><strong>${user.name}'s Bets</strong></div>
-                            <div class="game-time">Last updated: ${user.last_updated_at.toLocaleDateString()} at ${user.last_updated_at.toLocaleTimeString()}</div>
                         </div>
-                        ${user.bets.map(bet => {
-                             let betDetails = '';
-                             let displayOdds = bet.odds;
+                        <div style="padding: 0.75rem 1rem;">
+                            ${user.bets.map(bet => {
+                                let betDetails = '';
+                                let displayOdds = bet.odds;
+                                const potentialWinnings = calculatePayout(bet.odds, bet.bet_amount) - bet.bet_amount;
 
-                             if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
-                                displayOdds = '-110';
-                             }
+                                if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
+                                    displayOdds = '-110';
+                                }
 
-                             if (bet.bet_type === 'moneyline') {
-                                 betDetails = `${bet.team_picked} Moneyline (${displayOdds})`;
-                             } else if (bet.bet_type === 'spread') {
-                                 const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
-                                 betDetails = `${bet.team_picked} ${pointFormatted} (${displayOdds})`;
-                             } else if (bet.bet_type === 'total') {
-                                 betDetails = `${bet.teams} ${bet.team_picked === 'Over' ? 'Over' : 'Under'} ${bet.point_value} (${displayOdds})`;
-                             }
+                                if (bet.bet_type === 'moneyline') {
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ML`;
+                                } else if (bet.bet_type === 'spread') {
+                                    const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ${pointFormatted}`;
+                                } else if (bet.bet_type === 'total') {
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ${bet.point_value}`;
+                                }
 
-                             return `
-                                <div class="bet-item">
-                                    <div class="bet-item-left">
-                                        <div class="bet-description">${betDetails}</div>
-                                        <div class="bet-payout-calc">Wager: $${bet.bet_amount.toFixed(2)}</div>
+                                return `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(71, 85, 105, 0.2);">
+                                        <div style="font-weight: 500;">
+                                            ${betDetails} <span style="color: #6ee7b7; font-weight: 600;">(${displayOdds})</span>
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: #94a3b8; text-align: right;">
+                                            Wager: $${bet.bet_amount.toFixed(2)}<br>
+                                            Payout: $${(bet.bet_amount + potentialWinnings).toFixed(2)}
+                                        </div>
                                     </div>
-                                </div>
-                             `;
-                        }).join('')}
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
                 `).join('');
             } catch (err) {
