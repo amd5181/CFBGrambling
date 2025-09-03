@@ -884,7 +884,8 @@
         async function loadInitialData() {
             await loadCurrentWeek();
             if (oddsData) {
-                updateGamesDisplay(oddsData.slice(0, 10)); // Display some games if odds are loaded
+                // Show all games up to the maximum of 68
+                updateGamesDisplay(oddsData.slice(0, 68));
             } else {
                 // Display placeholder if no games are available
                 document.getElementById('gamesContainer').innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No games available for this week.</div>';
@@ -1670,13 +1671,13 @@
                 if (!response.ok) throw new Error('Failed to fetch odds from API');
                 const oddsDataFromApi = await response.json();
                 
-                // Filter games to only include those within the next 7 days
+                // Filter games to only include those within the next 7 days and apply the 68 game limit
                 const now = new Date();
                 const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
                 const filteredGames = oddsDataFromApi.filter(game => {
                     const gameTime = new Date(game.commence_time);
                     return gameTime >= now && gameTime <= oneWeekFromNow;
-                });
+                }).slice(0, 68);
                 
                 await supabase.from('betting_weeks').update({ is_active: false }).neq('id', 0);
                 
