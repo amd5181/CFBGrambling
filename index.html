@@ -1087,9 +1087,9 @@
             if (isNaN(oddsNum) || amount <= 0) return 0;
 
             if (oddsNum > 0) {
-                return amount * (oddsNum / 100) + amount;
+                return amount * (oddsNum / 100);
             } else if (oddsNum < 0) {
-                return amount / (Math.abs(oddsNum) / 100) + amount;
+                return amount / (Math.abs(oddsNum) / 100);
             }
             return 0;
         }
