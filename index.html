@@ -1024,6 +1024,19 @@
             } else {
                 document.querySelector(`.nav-bubble[onclick*="${pageId}"]`).classList.add('active');
             }
+
+            // Silent refresh for each page
+            if (pageId === 'thisWeek') {
+                loadCurrentWeek();
+            } else if (pageId === 'myBets') {
+                loadMyBets();
+            } else if (pageId === 'currentWeekBets') {
+                loadCurrentWeeksBets();
+            } else if (pageId === 'leaderboard') {
+                loadLeaderboard();
+            } else if (pageId === 'admin' && currentUser?.is_admin) {
+                loadUsersForAdmin();
+            }
         }
         
         // Betting Logic
