@@ -1449,43 +1449,67 @@
                     container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No previous week\'s bets to display yet.</div>';
                     return;
                 }
-                
+
                 const deadlineDate = new Date(recentWeekData.betting_deadline);
                 const formattedDate = deadlineDate.toLocaleDateString('en-US');
                 pageHeader.textContent = `Picks for the Weekend of ${formattedDate}`;
 
-                // Now fetch bets for that specific week
-                const { data, error } = await supabase
+                // Fetch bets for that specific week
+                const { data: bets, error: betsError } = await supabase
                     .from('user_bets')
                     .select('*, users(name), betting_weeks(week_number)')
-                    .eq('week_id', recentWeekData.id)
-                    .order('user_pin', { ascending: true });
+                    .eq('week_id', recentWeekData.id);
+                if (betsError) throw betsError;
 
-                if (error) throw error;
+                // Fetch bet results for the week
+                const { data: results, error: resultsError } = await supabase
+                    .from('bet_results')
+                    .select('*')
+                    .eq('week_id', recentWeekData.id);
+                if (resultsError) throw resultsError;
 
-                if (data.length === 0) {
-                    container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem;">No bets have been placed for the week of ${formattedDate} yet.</div>`;
-                    return;
-                }
+                // Map results for quick lookup
+                const resultsMap = {};
+                results.forEach(r => {
+                    resultsMap[`${r.user_pin}_${r.game_id}_${r.bet_type}_${r.team_picked}`] = r;
+                });
 
                 // Group bets by user
-                const groupedBets = data.reduce((acc, bet) => {
+                const groupedBets = bets.reduce((acc, bet) => {
                     const user = acc[bet.user_pin] || { name: bet.users.name, bets: [] };
                     user.bets.push(bet);
                     acc[bet.user_pin] = user;
                     return acc;
                 }, {});
 
-                container.innerHTML = Object.values(groupedBets).map(user => `
+                // Calculate winnings for each user
+                Object.values(groupedBets).forEach(user => {
+                    user.totalWinnings = 0;
+                    user.bets.forEach(bet => {
+                        const resultKey = `${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}`;
+                        const result = resultsMap[resultKey];
+                        if (result && result.is_win === true) {
+                            user.totalWinnings += calculatePayout(bet.odds, bet.bet_amount);
+                        }
+                    });
+                });
+
+                // Sort users by total winnings
+                const sortedUsers = Object.values(groupedBets).sort((a, b) => b.totalWinnings - a.totalWinnings);
+
+                container.innerHTML = sortedUsers.map(user => `
                     <div class="game-card">
                         <div class="game-header" style="background: none; border-bottom: none; padding-bottom: 0;">
                             <div class="game-matchup"><strong>${user.name}'s Bets</strong></div>
+                            <div style="font-weight: bold; color: #6ee7b7;">Total Winnings: $${user.totalWinnings.toFixed(2)}</div>
                         </div>
                         <div style="padding: 0.75rem 1rem;">
                             ${user.bets.map(bet => {
                                 let betDetails = '';
                                 let displayOdds = bet.odds;
                                 const potentialWinnings = calculatePayout(bet.odds, bet.bet_amount) - bet.bet_amount;
+                                const resultKey = `${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}`;
+                                const result = resultsMap[resultKey];
 
                                 if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
                                     displayOdds = '-110';
@@ -1500,12 +1524,28 @@
                                     betDetails = `${bet.teams} - ${bet.team_picked} ${bet.point_value}`;
                                 }
 
+                                // Color and admin controls
+                                let color = '#94a3b8';
+                                if (result && result.is_win === true) color = '#22c55e'; // green
+                                if (result && result.is_win === false) color = '#ef4444'; // red
+
+                                let adminControls = '';
+                                if (currentUser?.is_admin) {
+                                    adminControls = `
+                                        <span style="margin-left:1rem;">
+                                            <button style="background:#22c55e;color:white;border:none;padding:0.2rem 0.6rem;border-radius:0.3rem;cursor:pointer;" onclick="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',true)">Win</button>
+                                            <button style="background:#ef4444;color:white;border:none;padding:0.2rem 0.6rem;border-radius:0.3rem;cursor:pointer;" onclick="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',false)">Loss</button>
+                                        </span>
+                                    `;
+                                }
+
                                 return `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(71, 85, 105, 0.2);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(71, 85, 105, 0.2); color:${color};">
                                         <div style="font-weight: 500;">
                                             ${betDetails} <span style="color: #6ee7b7; font-weight: 600;">(${displayOdds})</span>
+                                            ${adminControls}
                                         </div>
-                                        <div style="font-size: 0.85rem; color: #94a3b8; text-align: right;">
+                                        <div style="font-size: 0.85rem; text-align: right;">
                                             Wager: $${bet.bet_amount.toFixed(2)}<br>
                                             Payout: $${(bet.bet_amount + potentialWinnings).toFixed(2)}
                                         </div>
@@ -1664,6 +1704,32 @@
         }
 
         // Admin Functions
+        // Mark bet result (admin only)
+        async function markBetResult(user_pin, game_id, bet_type, team_picked, is_win) {
+            if (!currentUser?.is_admin) return;
+            const week_id = currentWeek?.id;
+            if (!week_id) return;
+            try {
+                // Upsert result
+                const { error } = await supabase
+                    .from('bet_results')
+                    .upsert({
+                        user_pin,
+                        week_id,
+                        game_id,
+                        bet_type,
+                        team_picked,
+                        is_win,
+                        marked_at: new Date().toISOString()
+                    }, { onConflict: ['user_pin', 'week_id', 'game_id', 'bet_type', 'team_picked'] });
+                if (error) throw error;
+                // Refresh board
+                loadCurrentWeeksBets();
+            } catch (err) {
+                alert('Failed to mark result: ' + err.message);
+                console.error('Mark result error:', err);
+            }
+        }
         async function loadOdds() {
             if (!currentUser?.is_admin) {
                 showValidationMessage('You are not authorized to perform this action.');
