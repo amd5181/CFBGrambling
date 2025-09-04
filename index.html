@@ -1531,10 +1531,18 @@
 
                                 let adminControls = '';
                                 if (currentUser?.is_admin) {
+                                    const winChecked = result && result.is_win === true ? 'checked' : '';
+                                    const lossChecked = result && result.is_win === false ? 'checked' : '';
                                     adminControls = `
                                         <span style="margin-left:1rem;">
-                                            <button style="background:#22c55e;color:white;border:none;padding:0.2rem 0.6rem;border-radius:0.3rem;cursor:pointer;" onclick="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',true)">Win</button>
-                                            <button style="background:#ef4444;color:white;border:none;padding:0.2rem 0.6rem;border-radius:0.3rem;cursor:pointer;" onclick="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',false)">Loss</button>
+                                            <label style="margin-right:0.5rem;">
+                                                <input type="radio" name="result_${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}" value="win" ${winChecked} onchange="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',true)">
+                                                Win
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="result_${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}" value="loss" ${lossChecked} onchange="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',false)">
+                                                Loss
+                                            </label>
                                         </span>
                                     `;
                                 }
