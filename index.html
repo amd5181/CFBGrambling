@@ -1434,11 +1434,12 @@
             pageHeader.textContent = 'Current Week Board'; // Reset title while loading
 
             try {
-                // Find the week with the most recent past betting deadline
+                // Find the week with the most recent betting deadline that has fully passed (date and time)
+                const nowIso = new Date().toISOString();
                 const { data: recentWeekData, error: weekError } = await supabase
                     .from('betting_weeks')
                     .select('id, betting_deadline')
-                    .lt('betting_deadline', new Date().toISOString())
+                    .lte('betting_deadline', nowIso)
                     .order('betting_deadline', { ascending: false })
                     .limit(1)
                     .single();
