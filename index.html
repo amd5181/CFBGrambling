@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Luxon for timezone handling -->
-    <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CFB Grambling</title>
@@ -1436,12 +1434,11 @@
             pageHeader.textContent = 'Current Week Board'; // Reset title while loading
 
             try {
-                // Find the week with the most recent betting deadline that has fully passed (date and time)
-                const nowIso = new Date().toISOString();
+                // Find the week with the most recent past betting deadline
                 const { data: recentWeekData, error: weekError } = await supabase
                     .from('betting_weeks')
                     .select('id, betting_deadline')
-                    .lte('betting_deadline', nowIso)
+                    .lt('betting_deadline', new Date().toISOString())
                     .order('betting_deadline', { ascending: false })
                     .limit(1)
                     .single();
@@ -1509,88 +1506,79 @@
                         <div style="padding: 0.75rem 1rem;">
                             ${user.bets.map(bet => {
                                 let betDetails = '';
-                                try {
-                                    // Use Luxon to get current time and compare in ET
-                                    const DateTime = window.luxon.DateTime;
-                                    const nowET = DateTime.now().setZone('America/New_York');
+                                let displayOdds = bet.odds;
+                                const potentialWinnings = calculatePayout(bet.odds, bet.bet_amount) - bet.bet_amount;
+                                const resultKey = `${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}`;
+                                const result = resultsMap[resultKey];
 
-                                    // Get the most recent week whose deadline (in ET) has passed
-                                    const { data: weeks, error: weekError } = await supabase
-                                        .from('betting_weeks')
-                                        .select('id, betting_deadline')
-                                        .order('betting_deadline', { ascending: false });
-                                    if (weekError && weekError.code !== 'PGRST116') throw weekError;
-
-                                    // Find the first week whose deadline (in ET) is before nowET
-                                    let recentWeekData = null;
-                                    for (const week of weeks) {
-                                        const deadlineET = DateTime.fromISO(week.betting_deadline, { zone: 'America/New_York' });
-                                        if (deadlineET <= nowET) {
-                                            recentWeekData = week;
-                                            break;
-                                        }
-                                    }
-
-                                    if (!recentWeekData) {
-                                        container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">No previous week\'s bets to display yet.</div>';
-                                        return;
-                                    }
-
-                                    const deadlineDate = DateTime.fromISO(recentWeekData.betting_deadline, { zone: 'America/New_York' });
-                                    const formattedDate = deadlineDate.toLocaleString(DateTime.DATE_SHORT);
-                                    pageHeader.textContent = `Picks for the Weekend of ${formattedDate}`;
-
-                                    // Fetch bets for that specific week
-                                    const { data: bets, error: betsError } = await supabase
-                                        .from('user_bets')
-                                        .select('*, users(name), betting_weeks(week_number)')
-                                        .eq('week_id', recentWeekData.id);
-                                    if (betsError) throw betsError;
-
-                                    // Fetch bet results for the week
-                                    const { data: results, error: resultsError } = await supabase
-                                        .from('bet_results')
-                                        .select('*')
-                                        .eq('week_id', recentWeekData.id);
-                                    if (resultsError) throw resultsError;
-
-                                    // Map results for quick lookup
-                                    const resultsMap = {};
-                                    results.forEach(r => {
-                                        resultsMap[`${r.user_pin}_${r.game_id}_${r.bet_type}_${r.team_picked}`] = r;
-                                    });
-
-                                    // Group bets by user
-                                    const groupedBets = bets.reduce((acc, bet) => {
-                                        const user = acc[bet.user_pin] || { name: bet.users.name, bets: [] };
-                                        user.bets.push(bet);
-                                        acc[bet.user_pin] = user;
-                                        return acc;
-                                    }, {});
-
-                                    // Calculate winnings for each user
-                                    Object.values(groupedBets).forEach(user => {
-                                        user.totalWinnings = 0;
-                                        user.bets.forEach(bet => {
-                                            const resultKey = `${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}`;
-                                            const result = resultsMap[resultKey];
-                                            if (result && result.is_win === true) {
-                                                user.totalWinnings += calculatePayout(bet.odds, bet.bet_amount);
-                                            }
-                                        });
-                                    });
-
-                                    // Sort users by total winnings
-                                    const sortedUsers = Object.values(groupedBets).sort((a, b) => b.totalWinnings - a.totalWinnings);
-
-                                    container.innerHTML = sortedUsers.map(user => `
-                                        <div class=\"game-card\"> ...existing code...
-                                    `).join('');
-                                } catch (err) {
-                                    container.innerHTML = `<div style=\"text-align: center; color: #fca5a5; padding: 2rem;\">Failed to load current week's bets.</div>`;
-                                    console.error('Error loading current week bets:', err);
+                                if (bet.bet_type === 'spread' || bet.bet_type === 'total') {
+                                    displayOdds = '-110';
                                 }
-                            }
+
+                                if (bet.bet_type === 'moneyline') {
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ML`;
+                                } else if (bet.bet_type === 'spread') {
+                                    const pointFormatted = bet.point_value > 0 ? `+${bet.point_value}` : bet.point_value;
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ${pointFormatted}`;
+                                } else if (bet.bet_type === 'total') {
+                                    betDetails = `${bet.teams} - ${bet.team_picked} ${bet.point_value}`;
+                                }
+
+                                // Color and admin controls
+                                let color = '#94a3b8';
+                                if (result && result.is_win === true) color = '#22c55e'; // green
+                                if (result && result.is_win === false) color = '#ef4444'; // red
+
+                                let adminControls = '';
+                                if (currentUser?.is_admin) {
+                                    const winChecked = result && result.is_win === true ? 'checked' : '';
+                                    const lossChecked = result && result.is_win === false ? 'checked' : '';
+                                    adminControls = `
+                                        <span style="margin-left:1rem;">
+                                            <label style="margin-right:0.5rem;">
+                                                <input type="radio" name="result_${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}" value="win" ${winChecked} onchange="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',true)">
+                                                Win
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="result_${bet.user_pin}_${bet.game_id}_${bet.bet_type}_${bet.team_picked}" value="loss" ${lossChecked} onchange="markBetResult('${bet.user_pin}','${bet.game_id}','${bet.bet_type}','${bet.team_picked}',false)">
+                                                Loss
+                                            </label>
+                                        </span>
+                                    `;
+                                }
+
+                                return `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(71, 85, 105, 0.2); color:${color};">
+                                        <div style="font-weight: 500;">
+                                            ${betDetails} <span style="color: #6ee7b7; font-weight: 600;">(${displayOdds})</span>
+                                            ${adminControls}
+                                        </div>
+                                        <div style="font-size: 0.85rem; text-align: right;">
+                                            Wager: $${bet.bet_amount.toFixed(2)}<br>
+                                            Payout: $${(bet.bet_amount + potentialWinnings).toFixed(2)}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<div style="text-align: center; color: #fca5a5; padding: 2rem;">Failed to load current week's bets.</div>`;
+                console.error('Error loading current week bets:', err);
+            }
+        }
+        
+        async function editMyCurrentBets() {
+            if (!currentUser) return;
+            try {
+                const { data, error } = await supabase
+                    .from('user_bets')
+                    .select('*')
+                    .eq('user_pin', currentUser.pin)
+                    .eq('week_id', currentWeek.id);
+                if (error) throw error;
+                
                 if (data.length > 0) {
                     clearAllSelections();
                     data.forEach(bet => {
